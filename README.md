@@ -1,0 +1,36 @@
+Attack turn
+- Take infection effect
+- Roll attack
+  - Choose the right modifier (ammo: pre / !ammo: str)
+  - If fumbles
+    - Drop weapon
+  - Compare roll against enemy DR
+    - Roll damage
+  - If critical 
+    - Double damage
+    - Wear down 1 tier of enemy armor
+  - Roll enemy armor to reduce damage
+  - Reduce enemy's shield if any
+- Roll defense
+  - Check if it's taking any agi penality
+  - Compare roll against 12
+  - Roll damage
+  - If fumbles
+    - Wear down 1 tier of my armor
+    - Double damage
+  - If critical
+    - Enemy drops weapon
+  - Roll armor to reduce damage
+  - If has shield, choose:
+    - Reduce 1 damage
+    - Remove shield and reduce damage to 0
+  - If enemy has extra and took any damage
+    - Roll toughness against extra
+    - If lose adds infection if it hasn't already
+Use healing:
+- Heal up hp
+- Choose infection to remove
+- Roll defense like in attack
+Equip/Unequip 
+  - Choose Weapon|Armor|Shield
+  - Roll defense like in attack
