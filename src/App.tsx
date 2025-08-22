@@ -24,7 +24,7 @@ function getRandomId(): string {
 }
 
 // Tables
-const NAMES : string[] = ["Aerg-Tval","Agn","Arvant","Belsum","Belum","Brint","Börda","Daeru","Eldar","Felban","Gotven","Graft","Grin","Grittr","Haerü","Hargha","Harmug","Jotna","Karg","Karva","Katla","Keftar","Klort","Kratar","Kutz","Kvetin","Lygan","Margar","Merkari","Nagl","Niduk","Nifehl","Prügl","Qillnach","Risten","Svind","Theras","Therg","Torvul","Törn","Urm","Urvarg","Vagal","Vatan","Von","Vrakh","Vresi","Wemut"]
+const NAMES : string[] = ["Aerg-Tval","Agn","Arvant","Belsum","Belum","Brint","Bhorda","Daeru","Eldar","Felban","Gotven","Graft","Grin","Grittr","Haerhu","Hargha","Harmug","Jotna","Karg","Karva","Katla","Keftar","Klort","Kratar","Kutz","Kvetin","Lygan","Margar","Merkari","Nagl","Niduk","Nifehl","Prhugl","Qillnach","Risten","Svind","Theras","Therg","Torvul","Thorn","Urm","Urvarg","Vagal","Vatan","Von","Vrakh","Vresi","Wemut"]
 const WEAPON : WeaponType[] = [
   { name: "Femur", damage: 4 },
   { name: "Staff", damage: 4 },
@@ -35,7 +35,7 @@ const WEAPON : WeaponType[] = [
   { name: "Bow", damage: 6, ammo: 30 },
   { name: "Flail", damage: 8 },
   { name: "Crossbow", damage: 8, ammo: 30 },
-  { name: "Zweihänder", damage: 10 },
+  { name: "Zweihander", damage: 10 },
 ]
 const ARMOR: ArmorType[] = [
   // { name: "No armor", tier: 0, penalty: 0, wear: 0 },
@@ -78,6 +78,59 @@ const CREATURES: CreatureType[] = [
     dr: 10
   }
 ]
+
+const TILES: Record<string, string> = {
+  '1000': `x..x
+           x..x
+           x..x
+           xxxx`,
+
+  '0100': `xxxx
+           x...
+           x...
+           xxxx`,
+
+  '0010': `xxxx
+           x..x
+           x..x
+           x..x`,
+
+  '0001': `xxxx
+           ...x
+           ...x
+           xxxx`,
+
+ '1010': `x..x
+          x..x
+          x..x
+          x..x`,
+
+ '0101': `xxxx
+          ....
+          ....
+          xxxx`,
+
+  '1100': `x..x
+           x...
+           x...
+           xxxx`,
+
+  '0110': `xxxx
+           x...
+           x...
+           x..x`,
+
+  '0011': `xxxx
+           ...x
+           ...x
+           x..x`,
+
+  '1001': `x..x
+           ...x
+           ...x
+           xxxx`,
+
+}
 
 // Types
 type WeaponType = {
@@ -224,14 +277,24 @@ class Poison {
 
 type Equipment = Weapon|Armor|Shield|Poison|Healing|Item|undefined
 
+type Tile = {
+  up: boolean,
+  down: boolean,
+  left: boolean,
+  right: boolean
+}
+
 const EQUIP1: any[] = [
-  new Healing({ name: "Medicine chest", quantity: 4, cure: 6 }),
+  new Healing({ name: "Medicine Chest", quantity: 4, cure: 6 }),
   new Healing({ name: "Herbal Potion", quantity: 4, cure: 6 }),
-  new Healing({ name: "Life elixir", cure: 6, quantity: 4 }),
-  new Healing({ name: "Breath in vapor", cure: 6, quantity: 4 }),
+  new Healing({ name: "Life Elixir", cure: 6, quantity: 4 }),
+  new Healing({ name: "Breath in Vapor", cure: 6, quantity: 4 }),
   new Healing({ name: "Herbal Decoction", cure: 4, quantity: 8 }),
   new Weapon({ name: "Bomb", damage: 10, ammo: 5 }),
   new Weapon({ name: "Molotov", damage: 5, ammo: 5 }),
+  new Shield({ name: "Small Shield", protection: 1 }),
+  new Shield({ name: "Medium Shield", protection: 2 }),
+  new Shield({ name: "Big Shield", protection: 3 }),
   ...WEAPON.map(w => new Weapon(w)),
   ...ARMOR.map(a => new Armor(a))
 ]
@@ -253,6 +316,7 @@ class Character {
   armor: string|undefined
   weapon: string|undefined
   shield: string|undefined
+
   constructor() {
     this.name = `${randomArray(NAMES)} ${randomArray(NAMES)}`
     this.level = 1
@@ -266,8 +330,10 @@ class Character {
 
     const armor = new Armor(randomArray(ARMOR))
     const weapon = new Weapon(randomArray(WEAPON))
+    const shield = new Shield({ name: "Small Shield", protection: 1 })
     this.armor = armor.id
     this.weapon = weapon.id
+    this.shield = shield.id
 
     this.equipment = [
       armor,
@@ -275,7 +341,7 @@ class Character {
       new Weapon(randomArray(WEAPON)),
       new Weapon({ name: "Bare hands", damage: 2 }),
     ]
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       let item = {...randomArray(EQUIP1)}
       item.id = getRandomId()
       this.equipment.push(item)
@@ -329,17 +395,76 @@ class Creature {
     }
   }
 }
-
+type Position = {
+  x: number,
+  y: number
+}
 type GameState = {
+  win: boolean,
   turns: any[],
   character: Character,
-  enemy: Creature
+  enemy: Creature,
+  map: Tile[][],
+  position: Position
 }
 
+const emptyTile = { up: false, left: false, down: false, right: false }
+let initialMap: Tile[][] = []
+for (let y = 0; y < 4; y++) {
+  initialMap.push([])
+  for (let x = 0; x < 3; x++) {
+    initialMap[y][x] = { ...emptyTile }
+  }
+}
+
+function getNeighbors(state: GameState): Position[] {
+  const { position, map } = state
+  // Check what tiles around are totally empty (available to jump in)
+  const tileUp: Tile|null = map[position.y-1]?map[position.y-1][position.x]:null
+  const tileDown: Tile|null = map[position.y+1]?map[position.y+1][position.x]:null
+  const tileLeft: Tile|null = map[position.y]?map[position.y][position.x-1]:null
+  const tileRight: Tile|null = map[position.y]?map[position.y][position.x+1]:null
+
+  const result: Position[] = []
+  if (tileUp != null && !tileUp.up && !tileUp.down && !tileUp.right && !tileUp.left ) {
+    result.push({ x: position.x, y: position.y-1 })
+  }
+  if (tileDown != null && !tileDown.up && !tileDown.down && !tileDown.right && !tileDown.left ) {
+    result.push({ x: position.x, y: position.y+1 })
+  }
+  if (tileLeft != null && !tileLeft.up && !tileLeft.down && !tileLeft.right && !tileLeft.left ) {
+    result.push({ x: position.x-1, y: position.y })
+  }
+  if (tileRight != null && !tileRight.up && !tileRight.down && !tileRight.right && !tileRight.left ) {
+    result.push({ x: position.x+1, y: position.y })
+  }
+
+  return result
+}
+
+
 const gameState: GameState = {
+  win: false,
   turns: [],
   character: new Character(),
-  enemy: new Creature(randomArray(CREATURES))
+  enemy: new Creature(randomArray(CREATURES)),
+  map: [...initialMap],
+  position: { x: random(0, 2), y: random(0, 3) }
+}
+
+switch(random(0, 3)) {
+  case 0:
+    gameState.map[gameState.position.y][gameState.position.x].up = true
+  break;
+  case 1:
+    gameState.map[gameState.position.y][gameState.position.x].down = true
+  break;
+  case 2:
+    gameState.map[gameState.position.y][gameState.position.x].left = true
+  break;
+  case 3:
+    gameState.map[gameState.position.y][gameState.position.x].right = true
+  break;
 }
 
 function attack(state: GameState): GameState {
@@ -354,8 +479,7 @@ function attack(state: GameState): GameState {
   if (!equipedWeapon) {
     const bareHands = c.equipment.find(e => e?.name == "Bare hands") as Equipment
     if (bareHands) {
-      equipedWeapon = bareHands
-      equipedWeapon.equiped = true
+      c.weapon = bareHands.id
     }
   }
 
@@ -381,10 +505,10 @@ function attack(state: GameState): GameState {
     turn.push([1,' attack fumbled'])
     // Drop current weapon
     if (equipedWeapon) {
-      equipedWeapon.equiped = false
+      c.weapon = undefined
       const bareHands = c.equipment.find(e => e?.name == "Bare hands")
       if (bareHands) {
-        bareHands.equiped = true
+        c.weapon = bareHands.id
       }
     }
   } else {
@@ -588,11 +712,74 @@ function dealWithEnemyDead(state: GameState): GameState {
       turn.push([1,' getting item', item.name])
     }
     newState.character = character
-    newState.enemy = new Creature(randomArray(CREATURES))
-    turn.push([1, newState.enemy.name, 'rises'])
-    newState.turns.push(turn)
+
+    newState = moveCharacter(newState)
+
+    if (!newState.win) {
+      newState.enemy = new Creature(randomArray(CREATURES))
+      turn.push([1, newState.enemy.name, 'rises'])
+      newState.turns.push(turn)
+    }
+
   }
   return newState
+}
+
+function moveCharacter(state: GameState): GameState {
+  const newState = { ...state }
+  const neighbors = getNeighbors(newState)
+  if (neighbors.length > 0 ) {
+    const selected: Position = randomArray(neighbors)
+    let direction: string|null = null
+    if (selected.x > newState.position.x) {
+      direction = 'right'
+      newState.map[selected.y][selected.x].left = true
+    }
+    if (selected.x < newState.position.x) {
+      direction = 'left'
+      newState.map[selected.y][selected.x].right = true
+    }
+    if (selected.y > newState.position.y) {
+      direction = 'down'
+      newState.map[selected.y][selected.x].up = true
+    }
+    if (selected.y < newState.position.y) {
+      direction = 'up'
+      newState.map[selected.y][selected.x].down = true
+    }
+    if (direction != null) {
+      switch(direction) {
+        case 'up':
+          newState.map[newState.position.y][newState.position.x].up = true
+          break
+        case 'down':
+          newState.map[newState.position.y][newState.position.x].down = true
+          break
+        case 'left':
+          newState.map[newState.position.y][newState.position.x].left = true
+          break
+        case 'right':
+          newState.map[newState.position.y][newState.position.x].right = true
+          break
+      }
+      newState.position = selected
+    }
+  } else {
+    newState.win = true
+  }
+  return newState
+}
+
+function getTile(tile: Tile): string {
+  let tileString: string = ''
+  tileString += tile.up ? '1' : '0'
+  tileString += tile.right ? '1' : '0'
+  tileString += tile.down ? '1' : '0'
+  tileString += tile.left ? '1' : '0'
+  if (TILES[tileString]) {
+    return TILES[tileString]
+  }
+  return ''
 }
 
 function levelUp(state: GameState): GameState {
@@ -677,19 +864,19 @@ type VerticalBarArg = {
 }
 function VerticalBar(args: VerticalBarArg) {
   const { value } = args
-  const bodyStyle = {
-    minWidth: '1em',
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-    background: 'grey'
+  const bodyStyle: Record<string, string> = {
+    "minWidth": '1em',
+    "width": '100%',
+    "height": '100%',
+    "position": 'relative',
+    "background": 'grey'
   }
-  const markStyle = {
-    width: '100%',
-    height: `${Math.max(0, value)}%`,
-    position: 'absolute',
-    bottom: '0',
-    background: 'yellow'
+  const markStyle: Record<string, string> = {
+    "width": '100%',
+    "height": `${Math.max(0, value)}%`,
+    "position": 'absolute',
+    "bottom": '0',
+    "background": 'yellow'
   }
   return (
     <div style={bodyStyle}>
@@ -738,18 +925,18 @@ type HorizontalBarArg = {
 }
 function HorizontalBar(args: HorizontalBarArg) {
   const { value } = args
-  const bodyStyle = {
-    position: 'relative',
-    background: 'grey',
-    display: 'block'
+  const bodyStyle: Record<string, string> = {
+    "position": 'relative',
+    "background": 'grey',
+    "display": 'block'
   }
-  const markStyle = {
-    height: '100%',
-    width: `${value}%`,
-    position: 'absolute',
-    left: '0',
-    background: 'yellow',
-    display: 'block'
+  const markStyle: Record<string, string> = {
+    "height": '100%',
+    "width": `${value}%`,
+    "position": 'absolute',
+    "left": '0',
+    "background": 'yellow',
+    "display": 'block'
   }
   return (
     <div className="fw fh" style={bodyStyle}>
@@ -760,15 +947,18 @@ function HorizontalBar(args: HorizontalBarArg) {
 
 function App() {
   const [ state, setState ] = useState(gameState)
-  const { character, enemy, turns } = state
+  const { character, enemy, turns, win } = state
 
-  const weapon = getWeapon(character)
-  const armor = getArmor(character)
+  const weapon: Weapon = getWeapon(character) as Weapon
+  const armor: Armor = getArmor(character) as Armor
 
   function handleAttack() {
+    if (state.win) return
     let newState = takeInfectionDamage(state)
     newState = attack(newState)
-    newState = defense(newState)
+    if (!newState.win) {
+      newState = defense(newState)
+    }
     newState = dealWithEnemyDead(newState)
     newState = dealWithCharacterDeath(newState)
     setState(newState)
@@ -777,7 +967,9 @@ function App() {
   function handleEquip(item: any): () => undefined {
     return () => {
       let newState = equip(state, item)
-      newState = defense(newState)
+      if (!newState.win) {
+        newState = defense(newState)
+      }
       newState = dealWithCharacterDeath(newState)
       setState(newState)
     }
@@ -786,7 +978,9 @@ function App() {
   function handleUnequip(item: any): () => undefined {
     return () => {
       let newState = unequip(state, item)
-      newState = defense(newState)
+      if (!newState.win) {
+        newState = defense(newState)
+      }
       newState = dealWithCharacterDeath(newState)
       setState(newState)
     }
@@ -795,7 +989,9 @@ function App() {
   function handleHealing(item: Healing): () => undefined {
     return () => {
       let newState = useHealing(state, item)
-      newState = defense(newState)
+      if (!newState.win) {
+        newState = defense(newState)
+      }
       newState = dealWithCharacterDeath(newState)
       setState(newState)
     }
@@ -820,10 +1016,10 @@ function App() {
             </div>
 
             <div className="row character-modifiers">
-              <div className="col fw border"><ValueDisplay number={calculateModifier(character.strength)} /></div>
-              <div className="col fw border"><ValueDisplay number={calculateModifier(character.agility)} /></div>
-              <div className="col fw border"><ValueDisplay number={calculateModifier(character.presence)} /></div>
-              <div className="col fw border"><ValueDisplay number={calculateModifier(character.toughness)} /></div>
+              <div className="col fw border"><ValueDisplay number={calculateModifier(character.strength)} label="mod" /></div>
+              <div className="col fw border"><ValueDisplay number={calculateModifier(character.agility)} label="mod" /></div>
+              <div className="col fw border"><ValueDisplay number={calculateModifier(character.presence)} label="mod" /></div>
+              <div className="col fw border"><ValueDisplay number={calculateModifier(character.toughness)} label="mod" /></div>
             </div>
 
             <div className="row character-infections">
@@ -831,59 +1027,82 @@ function App() {
               <div className="col border fw fh p05">Silver: {character.silver}</div>
             </div>
 
-            <div className="row character-infections p05 border">
+            <div className="row character-infections p05 border f075">
               <div className="col">Inf:</div>
               {state.character.infections.map((i: Poison, j: number) => <div key={j} className="col fw"><InfectionDisplay infection={i} /></div>)}
             </div>
 
-            <div className="col character-weapon p025 border">
-              <div>Weapon: {weapon?.name} {weapon?.ammo} (1d{weapon.damage})</div>
+            <div className="col character-weapon p025 border f075">
+              <div>Weapon: {weapon?.name} {weapon?.ammo} (1d{weapon?.damage})</div>
             </div>
 
-            <div className="col character-armor p025 border">
+            <div className="col character-armor p025 border f075">
               <div>Armor: {armor?.name} ({armor?.tier})</div>
             </div>
 
             <div className="row character-equipment p025 fh scroll-y border">
               <div className="col g025">
                 {character.equipment.map((e: Equipment, i:number) => {
-                  switch (e.type) {
+                  switch (e?.type) {
                     case 'weapon':
-                    case 'armor':
-                      if (e?.id == character.armor || e?.id == character.weapon) {
-                        return <>
-                          <div className="row">
-                            <div className="col">
-                              <button disabled={dead} className='btn' onClick={handleUnequip(e)}>DROP</button>
-                            </div>
-                            <div className='col fw f075 p025'>
-                              {e?.name}
-                              {e?.damage ? ` (1d${e.damage})` : null}
-                              {e?.ammo ? ` (${e.ammo})` : null}
-                              {e?.tier ? ` (T${e.tier})` : null}
-                              {e?.wear ? ` (-${e.wear})` : null}
-                            </div>
-                          </div>
-                        </>
-                      }
+                    e = e as Weapon
+                    if (e?.id == character.weapon) {
                       return <>
-                        <div className="row">
+                        <div key={i} className="row">
                           <div className="col">
-                            <button disabled={dead} className='btn' onClick={handleEquip(e)}>EQUIP</button>
+                            <button disabled={dead} className='btn' onClick={handleUnequip(e)}>DROP</button>
                           </div>
                           <div className='col fw f075 p025'>
                             {e?.name}
                             {e?.damage ? ` (1d${e.damage})` : null}
                             {e?.ammo ? ` (${e.ammo})` : null}
+                          </div>
+                        </div>
+                      </>
+                    }
+                    return <>
+                      <div key={i} className="row">
+                        <div className="col">
+                          <button disabled={dead} className='btn' onClick={handleEquip(e)}>EQUIP</button>
+                        </div>
+                        <div className='col fw f075 p025'>
+                          {e?.name}
+                          {e?.damage ? ` (1d${e.damage})` : null}
+                          {e?.ammo ? ` (${e.ammo})` : null}
+                        </div>
+                      </div>
+                    </>
+                    case 'armor':
+                      e = e as Armor
+                      if (e?.id == character.armor) {
+                        return <>
+                          <div key={i} className="row">
+                            <div className="col">
+                              <button disabled={dead} className='btn' onClick={handleUnequip(e)}>DROP</button>
+                            </div>
+                            <div className='col fw f075 p025'>
+                              {e?.name}
+                              {e?.tier ? ` (T${e.tier})` : null}
+                            </div>
+                          </div>
+                        </>
+                      }
+                      return <>
+                        <div key={i} className="row">
+                          <div className="col">
+                            <button disabled={dead} className='btn' onClick={handleEquip(e)}>EQUIP</button>
+                          </div>
+                          <div className='col fw f075 p025'>
+                            {e?.name}
                             {e?.tier ? ` (T${e.tier})` : null}
-                            {e?.wear ? ` (-${e.wear})` : null}
                           </div>
                         </div>
                       </>
                     case 'healing':
+                      e = e as Healing
                       if (e.quantity > 0) {
                         return <>
-                          <div className="row">
+                          <div key={i} className="row">
                             <div className="col">
                               <button disabled={dead || e.quantity == 0} className='btn' onClick={handleHealing(e)}>TAKE</button>
                             </div>
@@ -900,13 +1119,29 @@ function App() {
 
         </div>
 
-        <div className="actions col fw fh p025">
+        <div className="actions col fw fh p1">
 
-          <div className="row fh action-display">
-            <div className="col fh"><VerticalBar value={(character.hp/character.maxHp)*100} /></div>
+          <div className="row fh action-display jc">
+            <div className="col p1"><VerticalBar value={(character.hp/character.maxHp)*100} /></div>
 
-            <div className="col fw"></div>
-            <div className="col"><VerticalBar value={(enemy.hp/enemy.maxHp)*100} /></div>
+            <div className="col fw fh border" style={{width: '230px'}}>
+              {
+                state.map.map(row => (
+                  <div className="row fw fh">
+                    {
+                      row.map(
+                        tile => (
+                          <div className="col fw fh tile tc">
+                            {getTile(tile)}
+                          </div>
+                        )
+                      )
+                    }
+                  </div>
+                ))
+              }
+            </div>
+            <div className="col p1"><VerticalBar value={(enemy.hp/enemy.maxHp)*100} /></div>
           </div>
 
           <div className="row character-development g1" style={{padding: '0.5em 0'}}>
@@ -915,12 +1150,12 @@ function App() {
           </div>
 
           <div className="row fight">
-            <button disabled={dead} className="btn fw f15" onClick={handleAttack}>FIGHT!</button>
+            <button disabled={win||dead} className="btn fw f15" onClick={handleAttack}>FIGHT!</button>
           </div>
 
         </div>
 
-        <div className="enemy col fw p1">
+        <div className="enemy col fw fh p1">
 
           <div className="row enemy-lore">
             <div className="col fw tc">{enemy.name}</div>
@@ -939,16 +1174,16 @@ function App() {
             <div className="col fw"><ValueDisplay number={enemy.extra[0]?.name} label="EXTRA" /></div>
           </div>
 
-          <div className="row">
-            <div className="col fh fw p05 logs">
-              <h5>LOGS</h5>
+          <h5>LOGS</h5>
+          <div className="row fh" style={{overflow: 'hidden'}}>
+            <div className="col fw fh p05 logs border">
               {turns.map((turn, i) => {
                 return (
-                  <div className="p025 fw border col">
+                  <div key={i} className="p025 fw border col">
                     {
-                      turn.map(t => {
+                      turn.map((t: any[], j: number) => {
                         if (t[0] > 0) {
-                          return <div className="fw">- {t.slice(1).join(' ')}</div>
+                          return <div key={j} className="fw">{t.slice(1).join(' ')}</div>
                         }
                       })
                     }
