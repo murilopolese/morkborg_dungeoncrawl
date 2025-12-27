@@ -1,0 +1,8 @@
+/* StatusIcon.module.scss */
+@use '../../styles/variables' as *;
+
+.icon {
+  color: $color-white;
+  font-size: 12px;
+  white-space: nowrap;
+}

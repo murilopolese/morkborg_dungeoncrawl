@@ -1,0 +1,11 @@
+/* Board.module.scss */
+@use '../../styles/variables' as *;
+
+.board {
+  display: flex;
+  align-items: center;
+  gap: $gap-sm;
+  background: $color-primary;
+  color: $color-bg;
+  padding: 5px 10px;
+}

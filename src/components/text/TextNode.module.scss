@@ -1,0 +1,6 @@
+/* TextNode.module.scss */
+.text {
+  display: inline-block;
+  white-space: break-spaces;   // keep the original behaviour
+  /* background‑clip:text is only needed if you want a gradient text */
+}

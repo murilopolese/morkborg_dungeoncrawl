@@ -1,0 +1,7 @@
+/* InventoryItem.module.scss */
+@use '../../styles/variables' as *;
+
+.item {
+  background: $color-bg;
+  color: $color-white;
+}
