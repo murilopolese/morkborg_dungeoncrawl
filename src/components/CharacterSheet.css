@@ -1,0 +1,91 @@
+/* ──────────────────────────────────────────────────────────────
+   CharacterSheet.css – styling for the Mörk Borg sheet
+   ────────────────────────────────────────────────────────────── */
+
+/* --- Layout ---------------------------------------------------- */
+.container {
+  font-family: "Courier New", monospace;
+  color: #eee;
+  background-color: #111;
+  padding: 20px;
+  max-width: 800px;
+  margin: auto;
+  line-height: 1.4;
+}
+
+/* --- Titles ----------------------------------------------------- */
+.title {
+  border-bottom: 2px solid #555;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  font-size: 22px;
+  text-shadow: 0 0 6px #900;
+}
+
+.sub-title {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+/* --- Tables ----------------------------------------------------- */
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.sheet-table th,
+.sheet-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #444;
+}
+.sheet-table td.right {
+  text-align: right;
+}
+
+/* --- Stats ------------------------------------------------------ */
+.stat {
+  margin-bottom: 5px;
+}
+
+/* --- Inventory slots ------------------------------------------- */
+.inventory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.slot {
+  width: 120px;
+  min-height: 30px;
+  border: 1px solid #555;
+  background-color: #222;
+  padding: 4px;
+  box-sizing: border-box;
+  color: #eee;
+}
+.empty-slot {
+  color: #777;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* --- Category label -------------------------------------------- */
+.category {
+  font-size: 12px;
+  color: #bbb;
+}
+
+/* --- Reset button ---------------------------------------------- */
+.reset-btn {
+  margin-top: 20px;
+  padding: 8px 12px;
+  background-color: #333;
+  color: #eee;
+  border: 1px solid #555;
+  cursor: pointer;
+}
+.reset-btn:hover {
+  background-color: #444;
+}

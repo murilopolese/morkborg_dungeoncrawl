@@ -1,0 +1,17 @@
+.layout {
+  display: grid;
+  /* three equal columns that never shrink below their content */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;           /* spacing between columns */
+  padding: 20px;       /* outer page padding (optional) */
+}
+
+/* Individual column wrapper – gives a light dark background
+   that matches the sheet’s theme. Empty columns still occupy space. */
+.column {
+  background-color: #222;
+  color: #eee;
+  min-height: 100vh;    /* make empty columns stretch to full height */
+  padding: 20px;
+  box-sizing: border-box;
+}
