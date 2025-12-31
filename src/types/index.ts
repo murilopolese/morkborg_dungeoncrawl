@@ -60,3 +60,21 @@ export interface Tile {
   cameFrom?: { row: number; col: number };
   wentTo?: { row: number; col: number };
 }
+
+// Encounters
+export type EncounterType =
+  | "trap"
+  | "monster"
+  | "item"
+  | "feature"
+  | "none";
+
+export interface Encounter {
+  type: EncounterType;
+  description?: string; // JSON‑string for monsters/items, plain text otherwise
+}
+
+export interface EncounterContextType {
+  encounter: Encounter;
+  rollEncounter: () => void;
+}

@@ -7,7 +7,12 @@ import {
   type Character,
 } from "../types";
 
-import { WEAPONS, ARMORS, POTIONS, SHIELDS } from "../data";
+import {
+  getRandomWeapon,
+  getRandomArmor,
+  getRandomShield,
+  generateStartingInventory,
+} from "./randomItemGenerator";
 
 /* ------------------------------------------------------------------
    Random character generator -------------------------------------- */
@@ -32,31 +37,13 @@ export const initRandomCharacter = (): Character => {
   const hp = Math.floor(maxHp * 0.7);
 
   /* ---- equipment ------------------------------------------------- */
-  const weapon = WEAPONS[randInt(0, WEAPONS.length - 1)];
-  const armor = ARMORS[randInt(0, ARMORS.length - 1)];
-
-  const shield =
-    Math.random() < 0.5
-      ? undefined
-      : SHIELDS[randInt(0, SHIELDS.length - 1)];
+  const weapon = getRandomWeapon();
+  const armor = getRandomArmor();
+  const shield = getRandomShield();
 
   /* ---- inventory ------------------------------------------------- */
   const carryCapacity = Math.max(0, abilities.Strength.modifier + 8);
-
-  const startWeapon =
-    WEAPONS[randInt(0, WEAPONS.length - 1)];
-  const healingPotions = POTIONS.filter((p) =>
-    p.name.toLowerCase().includes("heal")
-  );
-  const startPotion =
-    healingPotions.length
-      ? healingPotions[randInt(0, healingPotions.length - 1)]
-      : POTIONS[0];
-
-  const inventory: Item[] = [startWeapon, startPotion];
-  while (inventory.length < carryCapacity) {
-    inventory.push({ name: "", category: "" } as any);
-  }
+  const inventory: Item[] = generateStartingInventory(carryCapacity);
 
   return {
     abilities,
