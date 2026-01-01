@@ -4,6 +4,7 @@ import {
   type Character,
   type AbilityKey,
   type Item,
+  type Weapon,
 } from "../types";
 
 import "./CharacterSheet.css";   // keeps the same styling
@@ -26,6 +27,8 @@ export interface CharacterDisplayProps {
   onUnequip?: (
     slot: "weapon" | "armor" | "shield"
   ) => void;
+  /** Called when a weapon/armor/shield in inventory is clicked to equip it. */
+  onEquip?: (index: number) => void;
 }
 
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
@@ -33,6 +36,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
     onReset,
     onPotionUse,
     onUnequip,
+    onEquip
 }) => {
   const modText = (mod: number) =>
   mod >= 0 ? `+${mod}` : `${mod}`;
@@ -156,6 +160,13 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                     {(itm as any).category}
                   </span>
 
+                  {/* Show weapon damage if the item is a Weapon */}
+                  {itm.category === "Weapon" && (
+                    <div className="damage">
+                      {(itm as Weapon).damage}
+                    </div>
+                  )}
+
                   {/* If the item is a potion, show a “Use” button */}
                   {itm.category === "Potion" && onPotionUse && (
                     <button
@@ -165,6 +176,17 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                       Use Potion
                     </button>
                   )}
+
+                  {/* Weapon/Armor/Shield “Equip” button */}
+                  {["Weapon", "Armor", "Shield"].includes(itm.category) &&
+                    onEquip && (
+                      <button
+                        className="equip-btn"
+                        onClick={() => onEquip(i)}
+                      >
+                        Equip
+                      </button>
+                    )}
                 </>
               )}
             </div>

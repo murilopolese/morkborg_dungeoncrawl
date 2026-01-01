@@ -10,7 +10,7 @@ export const EMPTY_WEAPON: Weapon = {
 
 export const EMPTY_ARMOR: Armor = {
   category: "Armor",
-  tier: 1,
+  tier: 0,
   name: "Cloth",
   dmgReduction: "-0d0",
   defenseDr: 0,

@@ -89,3 +89,6 @@
 .reset-btn:hover {
   background-color: #444;
 }
+.damage {
+  font-size: 0.9rem;
+}
