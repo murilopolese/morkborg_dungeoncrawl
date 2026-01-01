@@ -11,7 +11,7 @@ export const ItemView: React.FC<ItemViewProps> = ({ item }) => (
     {/* Title */}
     <h3>Item</h3>
 
-    <h3>{item.category}</h3>
+    <h4>{item.category}</h4>
 
     {/* Raw data */}
     <pre>{JSON.stringify(item, null, 2)}</pre>

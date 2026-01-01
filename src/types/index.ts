@@ -31,7 +31,8 @@ export type Armor = {
   tier: 1 | 2 | 3;
   name: string;
   dmgReduction: string;   // e.g. “-1d2”
-  dr: number;             // DR bonus on Agility tests
+  defenseDr: number;             // DR bonus on Defense tests
+  agilityDr: number;             // DR bonus on Agility tests
 };
 
 export type Potion = {
@@ -59,6 +60,7 @@ export interface Tile {
   visited: boolean;
   cameFrom?: { row: number; col: number };
   wentTo?: { row: number; col: number };
+  encounter?: Encounter;
 }
 
 // Encounters

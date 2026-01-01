@@ -1,4 +1,4 @@
-// src/components/CharacterDisplay.tsx
+// src/components/EncounterSheet.tsx
 import React from "react";
 import {
   type Character,
@@ -8,7 +8,7 @@ import {
 
 import "./CharacterSheet.css";   // keeps the same styling
 
-export interface CharacterDisplayProps {
+export interface EncounterSheetProps {
   /** The character to render */
   character: Character;
   /** Optional reset callback – if omitted the button is hidden. */
@@ -23,10 +23,8 @@ export interface CharacterDisplayProps {
   onPotionUse?: (index: number) => void;
 }
 
-const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
-  character,
-  onReset,
-  onPotionUse,
+const EncounterSheet: React.FC<EncounterSheetProps> = ({
+  character
 }) => {
   const modText = (mod: number) =>
     mod >= 0 ? `+${mod}` : `${mod}`;
@@ -93,51 +91,8 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
           )}
         </tbody>
       </table>
-
-      {/* Inventory */}
-      <h3 className="sub-title">
-        Inventory (Capacity: {character.inventory.length})
-      </h3>
-      <div className="inventory">
-        {character.inventory.map((itm, i) => {
-          const isEmpty = !itm.name;
-          return (
-            <div
-              key={i}
-              className={isEmpty ? "slot empty-slot" : "slot"}
-            >
-              {!isEmpty && (
-                <>
-                  <strong>{itm.name}</strong>
-                  <br />
-                  <span className="category">
-                    {(itm as any).category}
-                  </span>
-
-                  {/* If the item is a potion, show a “Use” button */}
-                  {itm.category === "Potion" && onPotionUse && (
-                    <button
-                      className="use-potion-btn"
-                      onClick={() => onPotionUse(i)}
-                    >
-                      Use Potion
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Optional reset button */}
-      {onReset && (
-        <button onClick={onReset} className="reset-btn">
-          Randomize Character
-        </button>
-      )}
     </div>
   );
 };
 
-export default CharacterDisplay;
+export default EncounterSheet;

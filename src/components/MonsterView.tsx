@@ -1,9 +1,12 @@
 // src/components/MonsterView.tsx
 import React from "react";
-import type { Character, Encounter } from "../types";
-import CharacterDisplay from "./CharacterDisplay";
+import type { Character } from "../types";
+import EncounterSheet from "./MonsterDisplay";
 
-export const MonsterView: React.FC<Encounter> = ({ description }) => {
-  let character = JSON.parse(description || '{}') as Character
-  return <CharacterDisplay character={character} />
+export interface MonsterViewProps {
+  description: Character;
+}
+
+export const MonsterView: React.FC<MonsterViewProps> = ({ description }) => {
+  return <EncounterSheet character={description} />
 }

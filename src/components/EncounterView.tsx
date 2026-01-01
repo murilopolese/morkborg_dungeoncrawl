@@ -1,6 +1,5 @@
-// src/components/EncounterView.tsx
 import React, { useContext } from "react";
-import { EncounterContext } from "../contexts/EncounterContext";
+import { DungeonContext } from "../contexts/DungeonContext";
 
 import { MonsterView } from "./MonsterView";
 import { ItemView } from "./ItemView";
@@ -8,27 +7,34 @@ import { FeatureView } from "./FeatureView";
 import { TrapView } from "./TrapView";
 
 export const EncounterView: React.FC = () => {
-  const ctx = useContext(EncounterContext);
+  const ctx = useContext(DungeonContext);
   if (!ctx) return null;
-  const { encounter, rollEncounter } = ctx;
+  const { grid, player } = ctx;
+
+  const tile = grid[player.row][player.col];
+  const encounter = tile.encounter ?? { type: "none" };
 
   /* ---------- Render logic -------------------------------------- */
   let content;
   switch (encounter.type) {
     case "monster": {
-      const char = encounter.description;
+      const char = JSON.parse(encounter.description || "{}");
       content = <MonsterView description={char} />;
       break;
     }
 
     case "item": {
-      const item = encounter.description as import("../types").Item | undefined;
+      const item = JSON.parse(encounter.description || "{}");
       content = <ItemView item={item} />;
       break;
     }
 
     case "feature":
-      content = <FeatureView description={encounter.description as string ?? ""} />;
+      content = (
+        <FeatureView
+          description={encounter.description as string ?? ""}
+        />
+      );
       break;
 
     case "trap":
@@ -44,7 +50,6 @@ export const EncounterView: React.FC = () => {
     <div className="encounter-view">
       <h2>Current Encounter</h2>
       {content}
-      <button onClick={rollEncounter}>Roll Encounter</button>
     </div>
   );
 };
