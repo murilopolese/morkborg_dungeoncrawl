@@ -3,7 +3,9 @@ import "./CharacterSheet.css";
 
 import { initRandomCharacter } from "../utils/characterGenerator";
 import { CharacterContext } from "../contexts/CharacterContext";
-import CharacterDisplay from "./CharacterDisplay";   // ← new import
+import CharacterDisplay from "./CharacterDisplay";
+
+import { unequip } from "../utils/inventory"; // <-- new import
 
 export const CharacterSheet: React.FC = () => {
   const ctx = useContext(CharacterContext);
@@ -34,6 +36,13 @@ export const CharacterSheet: React.FC = () => {
   };
 
   /* -------------------------------------------------------------
+   *  Handle unequip – returns a new character via the utility
+   * ------------------------------------------------------------- */
+  const handleUnequip = (slot: "weapon" | "armor" | "shield") => {
+    setCharacter((prev) => unequip(prev, slot));
+  };
+
+  /* -------------------------------------------------------------
    *  Show reset button only when HP <= 0
    * ------------------------------------------------------------- */
   const canReset = character.hp <= 0;
@@ -45,6 +54,8 @@ export const CharacterSheet: React.FC = () => {
         onPotionUse={handlePotionUse}
         // Pass reset handler only if we may show the button
         onReset={canReset ? handleReset : undefined}
+        // New prop for unequip handling
+        onUnequip={handleUnequip}
       />
       {/* Optional – explicit button if CharacterDisplay doesn’t already render one */}
       {canReset && (

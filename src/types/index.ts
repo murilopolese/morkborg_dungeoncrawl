@@ -14,6 +14,9 @@ export interface Character {
   hp: number;
   maxHp: number;
 
+  /** Max items the character can carry – derived from Strength modifier. */
+  carryCapacity: number;
+
   equipment: Equipment;
   inventory: Item[];
 }
@@ -28,7 +31,7 @@ export type Weapon = {
 
 export type Armor = {
   category: "Armor";
-  tier: 1 | 2 | 3;
+  tier: 0 | 1 | 2 | 3;
   name: string;
   dmgReduction: string;   // e.g. “-1d2”
   defenseDr: number;             // DR bonus on Defense tests

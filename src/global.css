@@ -1,3 +1,7 @@
+body {
+  background-color: black;
+}
+
 .layout {
   display: grid;
   /* three equal columns that never shrink below their content */

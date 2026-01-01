@@ -7,6 +7,7 @@ import {
 } from "../types";
 
 import "./CharacterSheet.css";   // keeps the same styling
+import { EMPTY_WEAPON, EMPTY_ARMOR } from "../utils/inventory";
 
 export interface CharacterDisplayProps {
   /** The character to render */
@@ -21,15 +22,20 @@ export interface CharacterDisplayProps {
    * @param index Index of the potion inside `character.inventory`
    */
   onPotionUse?: (index: number) => void;
+  /** Called when an equipped item button is pressed. */
+  onUnequip?: (
+    slot: "weapon" | "armor" | "shield"
+  ) => void;
 }
 
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
-  character,
-  onReset,
-  onPotionUse,
+    character,
+    onReset,
+    onPotionUse,
+    onUnequip,
 }) => {
   const modText = (mod: number) =>
-    mod >= 0 ? `+${mod}` : `${mod}`;
+  mod >= 0 ? `+${mod}` : `${mod}`;
 
   return (
     <div className="container">
@@ -75,20 +81,56 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
           </tr>
         </thead>
         <tbody>
+          {/* Weapon */}
           <tr>
             <td>Weapon</td>
-            <td>{character.equipment.weapon.name} ({character.equipment.weapon.damage})</td>
-          </tr>
-          <tr>
             <td>
-              Armor
+              {character.equipment.weapon.name} ({character.equipment.weapon.damage})
+              {character.equipment.weapon.name !== EMPTY_WEAPON.name &&
+                onUnequip && (
+                  <button
+                    className="unequip-btn"
+                    onClick={() => onUnequip("weapon")}
+                  >
+                    Unequip
+                  </button>
+                )}
             </td>
-            <td>{character.equipment.armor.name} (tier {character.equipment.armor.tier})</td>
           </tr>
+
+          {/* Armor */}
+          <tr>
+            <td>Armor</td>
+            <td>
+              {character.equipment.armor.name} (tier{" "}
+              {character.equipment.armor.tier})
+              {character.equipment.armor.name !== EMPTY_ARMOR.name &&
+                onUnequip && (
+                  <button
+                    className="unequip-btn"
+                    onClick={() => onUnequip("armor")}
+                  >
+                    Unequip
+                  </button>
+                )}
+            </td>
+          </tr>
+
+          {/* Shield – optional */}
           {character.equipment.shield && (
             <tr>
               <td>Shield</td>
-              <td>{(character.equipment.shield as Item).name}</td>
+              <td>
+                {(character.equipment.shield as Item).name}
+                {onUnequip && (
+                  <button
+                    className="unequip-btn"
+                    onClick={() => onUnequip("shield")}
+                  >
+                    Unequip
+                  </button>
+                )}
+              </td>
             </tr>
           )}
         </tbody>
@@ -96,7 +138,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
 
       {/* Inventory */}
       <h3 className="sub-title">
-        Inventory (Capacity: {character.inventory.length})
+        Inventory (Capacity: {character.carryCapacity})
       </h3>
       <div className="inventory">
         {character.inventory.map((itm, i) => {
