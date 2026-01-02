@@ -2,7 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./global.css";
-import { CharacterSheet } from "./components/CharacterSheet";
+import { CharacterSheet } from "./components/CharacterView";
 import { DungeonView } from "./components/DungeonView";
 import { EncounterView } from "./components/EncounterView";
 import { EncounterProvider } from "./contexts/EncounterContext";

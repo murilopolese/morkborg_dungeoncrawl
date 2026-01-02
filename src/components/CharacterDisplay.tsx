@@ -7,7 +7,7 @@ import {
   type Weapon,
 } from "../types";
 
-import "./CharacterSheet.css";   // keeps the same styling
+import "./CharacterView.css";   // keeps the same styling
 import { EMPTY_WEAPON, EMPTY_ARMOR } from "../utils/inventory";
 
 export interface CharacterDisplayProps {
@@ -29,6 +29,9 @@ export interface CharacterDisplayProps {
   ) => void;
   /** Called when a weapon/armor/shield in inventory is clicked to equip it. */
   onEquip?: (index: number) => void;
+
+  /** **New** – called when the user clicks “Drop” for an inventory item. */
+  onDrop?: (index: number) => void;
 }
 
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
@@ -36,7 +39,8 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
     onReset,
     onPotionUse,
     onUnequip,
-    onEquip
+    onEquip,
+    onDrop, // <-- new prop
 }) => {
   const modText = (mod: number) =>
   mod >= 0 ? `+${mod}` : `${mod}`;
@@ -187,6 +191,16 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                         Equip
                       </button>
                     )}
+
+                  {/* **New** – Drop button if callback provided */}
+                  {onDrop && (
+                    <button
+                      className="drop-potion-btn" // you can style this as needed
+                      onClick={() => onDrop(i)}
+                    >
+                      Drop
+                    </button>
+                  )}
                 </>
               )}
             </div>

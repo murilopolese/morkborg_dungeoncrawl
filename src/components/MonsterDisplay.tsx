@@ -6,7 +6,7 @@ import {
   type Item,
 } from "../types";
 
-import "./CharacterSheet.css";   // keeps the same styling
+import "./CharacterView.css";   // keeps the same styling
 
 export interface EncounterSheetProps {
   /** The character to render */
