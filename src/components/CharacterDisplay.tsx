@@ -42,8 +42,12 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
     onEquip,
     onDrop, // <-- new prop
 }) => {
-  const modText = (mod: number) =>
-  mod >= 0 ? `+${mod}` : `${mod}`;
+  const modText = (mod: number) => mod >= 0 ? `+${mod}` : `${mod}`;
+  /* ------------------------------------------------------------------
+   * Helper – returns an item for a given slot index or `undefined`
+   * if that position is empty / beyond the current array length.
+   * ------------------------------------------------------------------ */
+  const getItem = (idx: number) => character.inventory[idx]; // may be undefined
 
   return (
     <div className="container">
@@ -148,55 +152,58 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
       <h3 className="sub-title">
         Inventory (Capacity: {character.carryCapacity})
       </h3>
+
       <div className="inventory">
-        {character.inventory.map((itm, i) => {
-          const isEmpty = !itm.name;
+        {/* Create a fixed array of length = carryCapacity */}
+        {Array.from({ length: character.carryCapacity }).map((_, idx) => {
+          const itm = getItem(idx);
+          const isEmpty = !itm || !itm.name;
+
           return (
             <div
-              key={i}
+              key={idx}
               className={isEmpty ? "slot empty-slot" : "slot"}
             >
               {!isEmpty && (
                 <>
-                  <strong>{itm.name}</strong>
+                  <strong>{itm!.name}</strong>
                   <br />
                   <span className="category">
                     {(itm as any).category}
                   </span>
 
-                  {/* Show weapon damage if the item is a Weapon */}
-                  {itm.category === "Weapon" && (
-                    <div className="damage">
-                      {(itm as Weapon).damage}
-                    </div>
+                  {/* Weapon damage */}
+                  {itm!.category === "Weapon" && (
+                    <div className="damage">{(itm as Weapon).damage}</div>
                   )}
 
-                  {/* If the item is a potion, show a “Use” button */}
-                  {itm.category === "Potion" && onPotionUse && (
-                    <button
-                      className="use-potion-btn"
-                      onClick={() => onPotionUse(i)}
-                    >
-                      Use Potion
-                    </button>
-                  )}
+                  {/* Potion “Use” button */}
+                  {itm!.category === "Potion" &&
+                    onPotionUse && (
+                      <button
+                        className="use-potion-btn"
+                        onClick={() => onPotionUse(idx)}
+                      >
+                        Use Potion
+                      </button>
+                    )}
 
-                  {/* Weapon/Armor/Shield “Equip” button */}
-                  {["Weapon", "Armor", "Shield"].includes(itm.category) &&
+                  {/* Equip button for Weapon/Armor/Shield */}
+                  {["Weapon", "Armor", "Shield"].includes(itm!.category) &&
                     onEquip && (
                       <button
                         className="equip-btn"
-                        onClick={() => onEquip(i)}
+                        onClick={() => onEquip(idx)}
                       >
                         Equip
                       </button>
                     )}
 
-                  {/* **New** – Drop button if callback provided */}
+                  {/* New – Drop button (if callback supplied) */}
                   {onDrop && (
                     <button
-                      className="drop-potion-btn" // you can style this as needed
-                      onClick={() => onDrop(i)}
+                      className="drop-potion-btn"
+                      onClick={() => onDrop(idx)}
                     >
                       Drop
                     </button>

@@ -1,5 +1,5 @@
 // src/components/ItemView.tsx
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import type { Item } from "../types";
 
 import { CharacterContext } from "../contexts/CharacterContext";
@@ -16,17 +16,24 @@ export const ItemView: React.FC<ItemViewProps> = ({ item }) => {
   /* ------------------ local state to remember a single click --------- */
   const [added, setAdded] = useState(false);
 
+  /* Reset `added` whenever the displayed item changes (i.e. a new tile) */
+  useEffect(() => {
+    setAdded(false);
+  }, [item]);
+
   /* -------------------- helpers -------------------------------------- */
   // true when there is at least one empty slot
-  const hasSpace =
-    ctx?.character.inventory.findIndex((it) => !it.name) !== -1;
-
+  const occupiedCount = ctx?.character.inventory.filter(
+    (it) => it && !!it.name
+  ).length ?? 0;
+  const hasSpace = ctx && occupiedCount < ctx.character.carryCapacity;
+  console.log(hasSpace, ctx?.character.carryCapacity, occupiedCount)
+ 
   /* ------------------ click handler --------------------------------- */
   const handleAdd = () => {
-    if (!ctx || added) return;           // guard against double clicks
-
+    if (!ctx || added) return; // guard against double clicks
     ctx.setCharacter((prev) => addItem(prev, item));
-    setAdded(true);                       // remember that we already clicked
+    setAdded(true); // remember that we already clicked
   };
 
   return (
@@ -35,11 +42,11 @@ export const ItemView: React.FC<ItemViewProps> = ({ item }) => {
       <h3>Item</h3>
       {/* Show button only if there is space,
           the item isn’t already in inventory and we haven’t clicked yet. */}
+      <h4>{item.category}</h4>
+      {/* Raw data */}
+      <pre>{JSON.stringify(item, null, 2)}</pre>
       {!added && hasSpace && (
         <>
-          <h4>{item.category}</h4>
-          {/* Raw data */}
-          <pre>{JSON.stringify(item, null, 2)}</pre>
           <button
             onClick={handleAdd}
             className="add-to-inventory-btn"

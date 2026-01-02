@@ -2,6 +2,7 @@
 import React, { useContext } from "react";
 import { DungeonContext } from "../contexts/DungeonContext";
 import './DungeonView.css'
+import type { EncounterType } from "../types";
 
 export const DungeonView: React.FC = () => {
   const ctx = useContext(DungeonContext);
@@ -37,6 +38,11 @@ export const DungeonView: React.FC = () => {
     return `/assets/tiles/${bits}.png`;
   };
 
+  /* ---------- determine what button(s) to show ---------- */
+  const currentTile = grid[player.row][player.col];
+  const encounterType: EncounterType = currentTile?.encounter?.type ?? "none";
+  const onClick = movePlayer;
+
   /* ---------- render the map ---------- */
   return (
     <div>
@@ -49,9 +55,7 @@ export const DungeonView: React.FC = () => {
             return (
               <div
                 key={`${i}-${j}`}
-                className={`tile ${tile.visited ? "visited" : ""} ${
-                  isCurrent ? "current" : ""
-                }`}
+                className={`tile ${tile.visited ? "visited" : ""} ${ isCurrent ? "current" : ""}`}
               >
                 {imgSrc && (
                   <img src={imgSrc} alt="floor" style={{ width: "100%", height: "100%" }} />
@@ -63,9 +67,26 @@ export const DungeonView: React.FC = () => {
         )}
       </div>
 
-      <button onClick={movePlayer} className="reset-btn">
-        Move
-      </button>
+      {/* ---------- button area ---------- */}
+      {(encounterType === "none" ||
+        encounterType === "feature" ||
+        encounterType === "item") && (
+        <button onClick={onClick} className="action-btn">
+          Move to next room
+        </button>
+      )}
+
+      {encounterType === "trap" && (
+        <button onClick={onClick} className="action-btn">
+          Escape trap
+        </button>
+      )}
+
+      {encounterType === "monster" && (
+        <button onClick={onClick} className="action-btn">
+          Fight monster
+        </button>
+      )}
     </div>
   );
 };

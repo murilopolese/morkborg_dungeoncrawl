@@ -44,9 +44,7 @@ export const initRandomCharacter = (): Character => {
 
   /* ---- inventory ------------------------------------------------- */
   const carryCapacity = Math.max(0, abilities.Strength.modifier + 8);
-  const inventory: Item[] = generateStartingInventory(carryCapacity);
-
-  console.log(inventory)
+  const inventory: Item[] = generateStartingInventory();
 
   return {
     abilities,
@@ -54,7 +52,7 @@ export const initRandomCharacter = (): Character => {
     level,
     hp,
     maxHp,
-    carryCapacity,          // ← new field
+    carryCapacity,
     equipment: { weapon, armor, shield },
     inventory,
   };

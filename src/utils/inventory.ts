@@ -125,11 +125,10 @@ export function addItem(
   character: Character,
   newItem: typeof character.inventory[number]
 ): Character {
-  const emptyIdx = character.inventory.findIndex((it) => !it.name);
-  if (emptyIdx === -1) return character; // inventory full
+  if (character.carryCapacity <= character.inventory.length) return character; // inventory full
 
   const newInventory = [...character.inventory];
-  newInventory[emptyIdx] = newItem;
+  newInventory.push(newItem);
   return { ...character, inventory: newInventory };
 }
 

@@ -49,17 +49,8 @@ export const getHealingPotion = (): Potion => {
  * The rest of the slots are filled with empty “placeholder” items until
  * the capacity is reached.
  */
-export const generateStartingInventory = (
-  carryCapacity: number,
-): Item[] => {
+export const generateStartingInventory = (): Item[] => {
   const inventory: Item[] = [getRandomWeapon(), getHealingPotion()];
-
-  while (inventory.length < carryCapacity) {
-    // A real game would probably pick a random item here; we keep the
-    // placeholder behaviour from the original code.
-    inventory.push({ name: "", category: "" } as any);
-  }
-
   return inventory;
 };
 
