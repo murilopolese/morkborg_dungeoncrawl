@@ -5,7 +5,9 @@ import { GameLog } from "./GameLog";
 import type { EncounterType, Grid } from "../types";
 import { CharacterContext } from "../contexts/CharacterContext";
 import { initRandomCharacter } from "../utils/characterGenerator";
+import { rollDie, applyDamageAndCheckDead, rollDamageFromWeapon, reduceDamage } from "../utils/combat";
 import { EMPTY_WEAPON, EMPTY_ARMOR } from "../utils/inventory";
+
 import './DungeonView.css';
 
 
@@ -29,26 +31,6 @@ export const DungeonView: React.FC = () => {
   const clearLog = useCallback(() => {
     setLogEntries([]);
   }, []);
-
-  /* ---------- Roll a single die with `sides` faces. ---------- */
-  const rollDie = (sides: number): number => Math.floor(Math.random() * sides) + 1;
-
-  /* ---------- Parse dice strings like “2d6+3” or just “1d4”. ---------- */
-  const parseDiceString = (dice: string): { count: number; sides: number; bonus: number } => {
-    const match = dice.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-    if (!match) throw new Error(`Invalid dice string: ${dice}`);
-    const [, cnt, side, bon] = match;
-    return { count: +cnt, sides: +side, bonus: bon ? +bon : 0 };
-  };
-
-  /* ---------- Roll the damage defined by a weapon’s `damage` property. ---------- */
-  const rollDamageFromWeapon = (weapon: any /* Weapon */): number => {
-    const { count, sides, bonus } = parseDiceString(weapon.damage);
-    let total = 0;
-    for (let i = 0; i < count; i++) total += rollDie(sides);
-    return total + bonus;
-  };
-
   /* ---------- helper that returns the image path for a tile ---------- */
   const getTileImage = (tile: typeof grid[0][0], r: number, c: number): string | undefined => {
     if (!tile.visited) return undefined;          // only visited tiles have an image
@@ -77,93 +59,80 @@ export const DungeonView: React.FC = () => {
     return `/assets/tiles/${bits}.png`;
   };
 
-
-  const fight = () => {
-    /* ---- Grab current tile & its encounter -------------------------------- */
+  /**
+   * The entire fight routine.
+   *
+   * @param ctx          DungeonContext (only the parts we need)
+   * @param charCtx      CharacterContext
+   * @param addLog       callback to push a log entry
+   */
+  const fight = (
+    ctx: any,
+    charCtx: any,
+    addLog: (msg: string) => void
+  ): void => {
+    /* Grab current tile & its encounter -------------------------------- */
+    const { grid, player } = ctx;
     const currentTile = grid[player.row][player.col];
     const encounter   = currentTile?.encounter;
+  
     if (!encounter || encounter.type !== "monster") return;
-
-    /* ---- Parse the monster from JSON ------------------------------------- */
+  
     let monster: any; // In a real app you’d type this properly.
     try {
       monster = encounter.description ? JSON.parse(encounter.description) : null;
     } catch (_) { /* ignore – if it fails we just abort */ }
     if (!monster) return;
-
-    /* ---- Helper: apply damage‑reduction dice ----------------------------- */
-    const reduceDamage = (dmg: number, armor: any /* Armor | undefined */): number => {
-      const redStr = armor?.dmgReduction;
-      if (!redStr) return dmg;                      // no reduction
-
-      let isNegative = false;
-      let str = redStr.trim();
-
-      if (str.startsWith("-")) {                     // e.g. "-1d2"
-        isNegative = true;
-        str = str.slice(1);                          // strip the sign
-      }
-
-      const { count, sides, bonus } = parseDiceString(str);
-      let reduction = 0;
-      for (let i = 0; i < count; i++) reduction += rollDie(sides);
-      reduction += bonus;
-
-      // armor’s dmgReduction is always a *negative* effect → subtract it
-      return Math.max(dmg - reduction, 0);
-    };
-
-    /* --------------------------------------------------------------------- */
-    /* ---------- 1️⃣ Attack Roll (with critical checks) ------------------ */
-    const attackRollD20 = rollDie(20);          // raw d20 value
+  
+    const { character, setCharacter } = charCtx;
+  
+    /* ---------- Attack Roll (with critical checks) -------------------- */
+    const attackRollD20 = rollDie(20);
     const weapon        = character.equipment.weapon;
     const attackAbilityKey  = weapon.test as keyof typeof character.abilities;
     const attackMod         = character.abilities[attackAbilityKey].modifier;
-
-    /* ----- Critical fail – drop weapon ---------------------------------- */
+  
+    /* Critical miss – drop weapon ------------------------------------- */
     if (attackRollD20 === 1) {
       addLog("Critical miss! You dropped your weapon.");
-      setCharacter(prev => ({
+      setCharacter((prev : any) => ({
         ...prev,
         equipment: { ...prev.equipment, weapon: EMPTY_WEAPON }
       }));
-      return;            // attack automatically fails
+      return;
     }
-
-    /* ----- Critical success – double damage & drop monster armor ------ */
+  
     const isAttackCritSuccess = attackRollD20 === 20;
     if (isAttackCritSuccess) addLog("Critical hit! Double damage will be applied.");
-
+  
     const attackRoll = attackRollD20 + attackMod;
     addLog(`Attack roll: ${attackRoll} (d20+${attackMod})`);
-
-    /* ---- Monster agility & armor ---------------------------------------- */
+  
+    /* Monster agility & armor ------------------------------------------ */
     const monsterAgilityMod =
       monster.abilities?.["Agility"]?.modifier ?? 0;
-
-    // Monster’s armor – defaults to zero if it doesn’t have one
+  
     const monsterArmor = monster.equipment?.armor ?? { defenseDr: 0 };
     const hitThreshold = 10 + monsterAgilityMod - (monsterArmor.defenseDr || 0);
-
-    /* ---- Does the attack land? ------------------------------------------- */
+  
+    /* Does the attack land? -------------------------------------------- */
     if (attackRoll > hitThreshold) {
       let dmg = rollDamageFromWeapon(weapon);
       dmg = reduceDamage(dmg, monsterArmor);          // apply monster’s DR
-
-      /* ----- Apply critical‑success multiplier ---------------------------- */
+  
       if (isAttackCritSuccess) dmg *= 2;
-
+  
       addLog(`You hit the monster for ${dmg} damage!`);
-
-      /* --- mutate monster HP ------------------------------------------------ */
-      monster.hp = Math.max((monster.hp ?? 0) - dmg, 0);
-
-      /* ----- Drop monster armor on critical success ------------------------ */
+  
+      /* ----- Update monster HP --------------------------------------- */
+      const { newHp: monsterNewHp } = applyDamageAndCheckDead(monster.hp ?? 0, dmg);
+      monster.hp = monsterNewHp;
+  
       if (isAttackCritSuccess && monster.equipment?.armor) {
         addLog("Critical hit: Monster’s armor is dropped!");
-        monster.equipment.armor = EMPTY_ARMOR;          // removed from game
+        monster.equipment.armor = EMPTY_ARMOR;
       }
-
+  
       ctx.setGrid?.((prev: Grid) => {
         const newGrid = prev.map(r => r.map(t => ({ ...t })));
         if (monster.hp <= 0) {                         // monster dies
@@ -177,76 +146,100 @@ export const DungeonView: React.FC = () => {
     } else {
       addLog("Your attack missed!");
     }
-
-    /* --------------------------------------------------------------------- */
-    /* ---------- 2️⃣ Defense Roll (with critical checks) ----------------- */
-    const defenseRollD20 = rollDie(20);            // raw d20 value
+  
+    /* ---------- Defense Roll (with critical checks) ------------------- */
+    const defenseRollD20 = rollDie(20);
     const defenseRollRaw = defenseRollD20 + character.abilities["Agility"].modifier;
-
-    // Player’s armor – subtract its defenseDr from the roll
+  
     const charArmorDef = character.equipment.armor?.defenseDr ?? 0;
     const defenseRoll  = defenseRollRaw - charArmorDef;
-
+  
     addLog(
       `Defense roll: ${defenseRoll} (d20+${character.abilities["Agility"].modifier}` +
         `${charArmorDef > 0 ? ` - ${charArmorDef}` : ""})`
     );
-
-    /* ----- Monster’s attack bonus ---------------------------------------- */
+  
+    /* Monster’s attack bonus ------------------------------------------- */
     const monsterWeapon =
       monster.equipment?.weapon ?? { test: "Strength" };
     const monsterAttackAbilityKey =
       monsterWeapon.test as keyof typeof character.abilities;
     const monsterAttackMod =
       monster.abilities?.[monsterAttackAbilityKey]?.modifier ?? 0;
-
-    /* ----- Critical fail – double damage & drop armor ------------------- */
+  
+    /* Critical defense failure ----------------------------------------- */
     if (defenseRollD20 === 1) {
       addLog("Critical defense failure! Double damage will be applied.");
-      // Drop player’s armor
-      setCharacter(prev => ({
+      setCharacter((prev : any) => ({
         ...prev,
         equipment: { ...prev.equipment, armor: EMPTY_ARMOR }
       }));
     }
-
-
-    /* ----- Critical success – drop monster armor ------------------------ */
-    if (isAttackCritSuccess && monster.equipment?.armor) {
-      addLog("Critical hit: Monster’s armor is dropped!");
-      monster.equipment.armor = EMPTY_ARMOR;          // removed from game
-    }
-
-    /* ----- Critical success – drop monster weapon ------------------------ */
+  
+    /* Monster’s weapon dropped on player’s critical success ------------ */
     if (defenseRollD20 === 20) {
       addLog("Critical defense success! Monster’s weapon is dropped.");
-      monster.equipment.weapon = EMPTY_WEAPON;          // removed from game
+      monster.equipment.weapon = EMPTY_WEAPON;
     }
-
-
-    /* ---- Does the monster hit? ------------------------------------------- */
+  
+    /* Does the monster hit? -------------------------------------------- */
     if (defenseRoll <= 10 + monsterAttackMod) {
       let dmg = rollDamageFromWeapon(monsterWeapon);
-      dmg = reduceDamage(dmg, character.equipment.armor);   // apply player’s DR
-
-      /* ----- Apply critical‑fail multiplier ------------------------------ */
+      dmg = reduceDamage(dmg, character.equipment.armor);
+  
       if (defenseRollD20 === 1) dmg *= 2;
-
+  
       addLog(`The monster hit you for ${dmg} damage!`);
-
-      const newHp = Math.max(character.hp - dmg, 0);
-      setCharacter(prev => ({ ...prev, hp: newHp }));
-      if (newHp <= 0) {
+  
+      const { newHp: playerNewHp, dead } = applyDamageAndCheckDead(
+        character.hp,
+        dmg
+      );
+  
+      setCharacter((prev : any) => ({ ...prev, hp: playerNewHp }));
+      if (dead) {
         alert("This one died!");
-        setIsDead(true);
+        setIsDead(true); // <-- we keep this line for backward compatibility; 
+                         // the check is now also performed in applyDamageAndCheckDead.
       }
     } else {
       addLog("You dodged the monster’s attack!");
     }
-
+  
     addLog("====================================");
   };
 
+  const escapeTrap = () => {
+    /* Presence DR – d20 + presence modifier, success if ≥ 14 */
+    const presenceMod = character.abilities["Presence"].modifier;
+    const roll = rollDie(20) + presenceMod;
+
+    addLog(`Presence check: ${roll} (d20+${presenceMod})`);
+    if (roll >= 14) {
+      addLog("You successfully escaped the trap!");
+      // You might want to change the tile’s encounter here:
+      ctx.setGrid?.((prev: Grid) => {
+        const newGrid = prev.map(r => r.map(t => ({ ...t })));
+        newGrid[player.row][player.col].encounter = { type: "none" };
+        return newGrid;
+      });
+    } else {
+      /* take 1d6 damage */
+      const dmg = rollDie(6);
+      addLog(`You failed to escape! You take ${dmg} damage.`);
+
+      const { newHp, dead } = applyDamageAndCheckDead(character.hp, dmg);
+      setCharacter(prev => ({ ...prev, hp: newHp }));
+      if (dead) {
+        alert("This one died!");
+        setIsDead(true);
+      }
+    }
+  };
+
+  const handleFight = () => {
+    fight(ctx, charCtx, addLog);
+  };
 
   /* ---------- determine what button(s) to show ---------- */
   const currentTile = grid[player.row][player.col];
@@ -288,20 +281,19 @@ export const DungeonView: React.FC = () => {
           )}
 
           {encounterType === "trap" && (
-            <button onClick={onClick} className="action-btn">
+            <button onClick={escapeTrap} className="action-btn">
               Escape trap
             </button>
           )}
 
           {encounterType === "monster" && (
-            <button onClick={fight} className="action-btn">
+            <button onClick={handleFight} className="action-btn">
               Fight monster
             </button>
           )}
         </>
       )}
 
-      {/* NEW: death‑recovery button */}
       {isDead && (
         <button
           onClick={() => {

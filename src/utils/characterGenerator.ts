@@ -20,10 +20,10 @@ import {
 export const initRandomCharacter = (): Character => {
   /* ---- abilities ------------------------------------------------- */
   const abilities: Record<AbilityKey, Ability> = {
-    Strength: { value: randInt(1, 20), modifier: 0 },
-    Agility: { value: randInt(1, 20), modifier: 0 },
-    Presence: { value: randInt(1, 20), modifier: 0 },
-    Toughness: { value: randInt(1, 20), modifier: 0 },
+    Strength: { value: randInt(8, 20), modifier: 0 },
+    Agility: { value: randInt(8, 20), modifier: 0 },
+    Presence: { value: randInt(8, 20), modifier: 0 },
+    Toughness: { value: randInt(8, 20), modifier: 0 },
   };
 
   Object.keys(abilities).forEach((k) => {
