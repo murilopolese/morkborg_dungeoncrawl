@@ -1,0 +1,13 @@
+.game-log {
+  max-height: 200px;            /* or whatever height you prefer */
+  overflow-y: auto;
+  background: #111;
+  color: #eee;
+  padding: 8px;
+  font-family: monospace;
+  border: 1px solid #444;
+}
+
+.log-entry + .log-entry {
+  margin-top: 4px;              /* space between lines */
+}

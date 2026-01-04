@@ -5,7 +5,7 @@ import { type Character, type Weapon, type Armor } from "../types";
 export const EMPTY_WEAPON: Weapon = {
   category: "Weapon",
   name: "Bare Hands",
-  damage: "0d0",
+  damage: "1d2",
   test: "Strength" as const,
 };
 
@@ -50,10 +50,9 @@ export function unequip(
   if (!itemToMove) return character; // nothing to unequip
 
   /* --- Place into inventory or drop if full ------------------- */
-  const freeIndex = newInventory.findIndex((it) => !it.name); // empty slot
-  if (freeIndex >= 0) {
-    newInventory[freeIndex] = itemToMove;
-  } // else: no space – the item is dropped
+  if (character.inventory.length < character.carryCapacity) {
+    newInventory.push(itemToMove)
+  }
 
   return { ...character, equipment: newEquipment, inventory: newInventory };
 }
@@ -110,8 +109,6 @@ export function equip(
   } else {
     // remove the newly equipped item from inventory
     newInventory.splice(index, 1);
-    // push an empty placeholder to preserve length
-    newInventory.push({} as any);
   }
 
   return { ...character, equipment: newEquipment, inventory: newInventory };

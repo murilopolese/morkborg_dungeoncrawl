@@ -66,6 +66,8 @@ export interface Tile {
   encounter?: Encounter;
 }
 
+export type Grid = Tile[][];
+
 // Encounters
 export type EncounterType =
   | "trap"

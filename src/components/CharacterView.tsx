@@ -1,7 +1,6 @@
 import React, { useContext } from "react";
 import "./CharacterView.css";
 
-import { initRandomCharacter } from "../utils/characterGenerator";
 import { CharacterContext } from "../contexts/CharacterContext";
 import CharacterDisplay from "./CharacterDisplay";
 
@@ -11,8 +10,6 @@ export const CharacterSheet: React.FC = () => {
   const ctx = useContext(CharacterContext);
   if (!ctx) throw new Error("CharacterSheet must be used within a CharacterProvider");
   const { character, setCharacter } = ctx;
-
-  const handleReset = () => setCharacter(initRandomCharacter());
 
   /* -------------------------------------------------------------
    *  Handle the “Use Potion” button that lives inside CharacterDisplay
@@ -56,27 +53,15 @@ export const CharacterSheet: React.FC = () => {
     setCharacter((prev) => dropItem(prev, index));
   };
 
-  /* -------------------------------------------------------------
-   *  Show reset button only when HP <= 0
-   * ------------------------------------------------------------- */
-  const canReset = character.hp <= 0;
-
   return (
     <div>
       <CharacterDisplay
         character={character}
         onPotionUse={handlePotionUse}
-        onReset={canReset ? handleReset : undefined}
         onUnequip={handleUnequip}
         onEquip={handleEquip}
         onDrop={handleDrop}
       />
-      {/* Optional – explicit button if CharacterDisplay doesn’t already render one */}
-      {canReset && (
-        <button className="regenerate-btn" onClick={handleReset}>
-          Regenerate character
-        </button>
-      )}
     </div>
   );
 };

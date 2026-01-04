@@ -4,11 +4,9 @@ import React, {
   useState,
   useEffect,
 } from "react";
-import { type Tile } from "../types";
+import type { Tile, Grid } from "../types";
 
 import { generateEncounter } from "../utils/generateEncounter";
-
-type Grid = Tile[][];
 
 const GRID_SIZE = 4;
 const emptyTile: Tile = { visited: false };
@@ -23,6 +21,7 @@ export interface DungeonContextType {
   player: { row: number; col: number };
   movePlayer: () => void;
   resetMap: () => void;
+  setGrid?: React.Dispatch<React.SetStateAction<Grid>>;
 }
 
 export const DungeonContext = createContext<
@@ -118,7 +117,7 @@ export const DungeonProvider: React.FC<{
   /* ---------- context value ---------- */
   return (
     <DungeonContext.Provider
-      value={{ grid, player, movePlayer, resetMap }}
+      value={{ grid, player, movePlayer, resetMap, setGrid }}
     >
       {children}
     </DungeonContext.Provider>

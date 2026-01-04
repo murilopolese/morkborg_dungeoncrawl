@@ -27,7 +27,6 @@ export const ItemView: React.FC<ItemViewProps> = ({ item }) => {
     (it) => it && !!it.name
   ).length ?? 0;
   const hasSpace = ctx && occupiedCount < ctx.character.carryCapacity;
-  console.log(hasSpace, ctx?.character.carryCapacity, occupiedCount)
  
   /* ------------------ click handler --------------------------------- */
   const handleAdd = () => {

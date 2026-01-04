@@ -36,7 +36,6 @@ export interface CharacterDisplayProps {
 
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
     character,
-    onReset,
     onPotionUse,
     onUnequip,
     onEquip,
@@ -97,8 +96,8 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
           <tr>
             <td>Weapon</td>
             <td>
-              {character.equipment.weapon.name} ({character.equipment.weapon.damage})
-              {character.equipment.weapon.name !== EMPTY_WEAPON.name &&
+              {character.equipment.weapon?.name} ({character.equipment.weapon?.damage})
+              {character.equipment.weapon?.name !== EMPTY_WEAPON.name &&
                 onUnequip && (
                   <button
                     className="unequip-btn"
@@ -114,9 +113,9 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
           <tr>
             <td>Armor</td>
             <td>
-              {character.equipment.armor.name} (tier{" "}
-              {character.equipment.armor.tier})
-              {character.equipment.armor.name !== EMPTY_ARMOR.name &&
+              {character.equipment.armor?.name} (tier{" "}
+              {character.equipment.armor?.tier})
+              {character.equipment.armor?.name !== EMPTY_ARMOR.name &&
                 onUnequip && (
                   <button
                     className="unequip-btn"
@@ -177,50 +176,49 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                     <div className="damage">{(itm as Weapon).damage}</div>
                   )}
 
-                  {/* Potion “Use” button */}
-                  {itm!.category === "Potion" &&
-                    onPotionUse && (
-                      <button
-                        className="use-potion-btn"
-                        onClick={() => onPotionUse(idx)}
-                      >
-                        Use Potion
-                      </button>
-                    )}
+                  {
+                    (character.hp > 0) &&
+                    <>
+                      {/* Potion “Use” button */}
+                      {itm!.category === "Potion" &&
+                        onPotionUse && 
+                        (
+                          <button
+                            className="use-potion-btn"
+                            onClick={() => onPotionUse(idx)}
+                          >
+                            Use Potion
+                          </button>
+                        )}
 
-                  {/* Equip button for Weapon/Armor/Shield */}
-                  {["Weapon", "Armor", "Shield"].includes(itm!.category) &&
-                    onEquip && (
-                      <button
-                        className="equip-btn"
-                        onClick={() => onEquip(idx)}
-                      >
-                        Equip
-                      </button>
-                    )}
+                      {/* Equip button for Weapon/Armor/Shield */}
+                      {["Weapon", "Armor", "Shield"].includes(itm!.category) &&
+                        onEquip && (
+                          <button
+                            className="equip-btn"
+                            onClick={() => onEquip(idx)}
+                          >
+                            Equip
+                          </button>
+                        )}
 
-                  {/* New – Drop button (if callback supplied) */}
-                  {onDrop && (
-                    <button
-                      className="drop-potion-btn"
-                      onClick={() => onDrop(idx)}
-                    >
-                      Drop
-                    </button>
-                  )}
+                      {/* New – Drop button (if callback supplied) */}
+                      {onDrop && (
+                        <button
+                          className="drop-potion-btn"
+                          onClick={() => onDrop(idx)}
+                        >
+                          Drop
+                        </button>
+                      )}
+                    </>
+                  }
                 </>
               )}
             </div>
           );
         })}
       </div>
-
-      {/* Optional reset button */}
-      {onReset && (
-        <button onClick={onReset} className="reset-btn">
-          Randomize Character
-        </button>
-      )}
     </div>
   );
 };
