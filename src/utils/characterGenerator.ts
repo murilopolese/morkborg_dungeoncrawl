@@ -32,7 +32,7 @@ export const initRandomCharacter = (): Character => {
   });
 
   /* ---- XP / level / HP ------------------------------------------ */
-  const xp = 0;                     // <-- start at zero
+  const xp = 1;                     // <-- start at zero
   const level = computeLevel(xp);   // will be 0 with the new rule
   const maxHp = computeHP(abilities.Toughness.value);
   const hp = Math.floor(maxHp * 0.7);

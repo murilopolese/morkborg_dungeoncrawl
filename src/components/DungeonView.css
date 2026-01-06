@@ -35,3 +35,8 @@
   font-size: 28px;
   pointer-events: none;
 }
+
+.action-btn {
+  width: 100%;
+  padding: 2em;
+}
