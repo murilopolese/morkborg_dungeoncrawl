@@ -143,3 +143,13 @@ export function dropItem(
 
   return { ...character, inventory: newInventory };
 }
+
+
+export function useShield(
+  character: Character
+) {
+  return {
+    ...character,
+    usingShield: true
+  }
+}

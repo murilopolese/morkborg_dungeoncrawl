@@ -13,6 +13,7 @@ export interface Character {
   level: number;
   hp: number;
   maxHp: number;
+  usingShield: boolean;
 
   /** Max items the character can carry – derived from Strength modifier. */
   carryCapacity: number;

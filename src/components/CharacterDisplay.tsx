@@ -7,46 +7,29 @@ import {
   type Weapon,
 } from "../types";
 
-import "./CharacterView.css";   // keeps the same styling
+import "./CharacterView.css";
 import { EMPTY_WEAPON, EMPTY_ARMOR } from "../utils/inventory";
 
 export interface CharacterDisplayProps {
-  /** The character to render */
   character: Character;
-  /** Optional reset callback – if omitted the button is hidden. */
   onReset?: () => void;
-
-  /**
-   * Callback that is invoked when a potion in the inventory
-   * is clicked.
-   *
-   * @param index Index of the potion inside `character.inventory`
-   */
   onPotionUse?: (index: number) => void;
-  /** Called when an equipped item button is pressed. */
-  onUnequip?: (
-    slot: "weapon" | "armor" | "shield"
-  ) => void;
-  /** Called when a weapon/armor/shield in inventory is clicked to equip it. */
+  onUnequip?: (slot: "weapon" | "armor" | "shield") => void;
   onEquip?: (index: number) => void;
-
-  /** **New** – called when the user clicks “Drop” for an inventory item. */
   onDrop?: (index: number) => void;
+  onShield?: () => void; // called when sacrifice is clicked
 }
 
 const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
-    character,
-    onPotionUse,
-    onUnequip,
-    onEquip,
-    onDrop, // <-- new prop
+  character,
+  onPotionUse,
+  onUnequip,
+  onEquip,
+  onDrop,
+  onShield,
 }) => {
-  const modText = (mod: number) => mod >= 0 ? `+${mod}` : `${mod}`;
-  /* ------------------------------------------------------------------
-   * Helper – returns an item for a given slot index or `undefined`
-   * if that position is empty / beyond the current array length.
-   * ------------------------------------------------------------------ */
-  const getItem = (idx: number) => character.inventory[idx]; // may be undefined
+  const modText = (mod: number) => (mod >= 0 ? `+${mod}` : `${mod}`);
+  const getItem = (idx: number) => character.inventory[idx];
 
   return (
     <div className="container">
@@ -66,15 +49,13 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
             <tr key={k}>
               <td>{k}</td>
               <td className="right">{character.abilities[k].value}</td>
-              <td className="right">
-                {modText(character.abilities[k].modifier)}
-              </td>
+              <td className="right">{modText(character.abilities[k].modifier)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* XP / Level / HP */}
+      {/* HP / Level / XP */}
       <div className="stat">
         <strong>HP:</strong> {character.hp} ({character.maxHp}) /{" "}
         <strong>Level:</strong> {character.level} / <strong>XP:</strong>{" "}
@@ -133,14 +114,25 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
               <td>Shield</td>
               <td>
                 {(character.equipment.shield as Item).name}
-                {onUnequip && (
-                  <button
-                    className="unequip-btn"
-                    onClick={() => onUnequip("shield")}
-                  >
-                    Unequip
-                  </button>
-                )}
+                {!character.usingShield &&
+                  onUnequip && (
+                    <button
+                      className="unequip-btn"
+                      onClick={() => onUnequip("shield")}
+                    >
+                      Unequip
+                    </button>
+                  )}
+                {/* Sacrifice button – shown only when not using shield */}
+                {!character.usingShield &&
+                  onShield && (
+                    <button
+                      className="sacrifice-btn"
+                      onClick={onShield}
+                    >
+                      Sacrifice
+                    </button>
+                  )}
               </td>
             </tr>
           )}
@@ -153,7 +145,6 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
       </h3>
 
       <div className="inventory">
-        {/* Create a fixed array of length = carryCapacity */}
         {Array.from({ length: character.carryCapacity }).map((_, idx) => {
           const itm = getItem(idx);
           const isEmpty = !itm || !itm.name;
@@ -167,22 +158,16 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                 <>
                   <strong>{itm!.name}</strong>
                   <br />
-                  <span className="category">
-                    {(itm as any).category}
-                  </span>
+                  <span className="category">{(itm as any).category}</span>
 
-                  {/* Weapon damage */}
                   {itm!.category === "Weapon" && (
                     <div className="damage">{(itm as Weapon).damage}</div>
                   )}
 
-                  {
-                    (character.hp > 0) &&
+                  {(character.hp > 0) && (
                     <>
-                      {/* Potion “Use” button */}
                       {itm!.category === "Potion" &&
-                        onPotionUse && 
-                        (
+                        onPotionUse && (
                           <button
                             className="use-potion-btn"
                             onClick={() => onPotionUse(idx)}
@@ -190,8 +175,6 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                             Use Potion
                           </button>
                         )}
-
-                      {/* Equip button for Weapon/Armor/Shield */}
                       {["Weapon", "Armor", "Shield"].includes(itm!.category) &&
                         onEquip && (
                           <button
@@ -201,8 +184,6 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                             Equip
                           </button>
                         )}
-
-                      {/* New – Drop button (if callback supplied) */}
                       {onDrop && (
                         <button
                           className="drop-potion-btn"
@@ -212,7 +193,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                         </button>
                       )}
                     </>
-                  }
+                  )}
                 </>
               )}
             </div>

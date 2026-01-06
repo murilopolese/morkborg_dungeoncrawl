@@ -55,5 +55,6 @@ export const initRandomCharacter = (): Character => {
     carryCapacity,
     equipment: { weapon, armor, shield },
     inventory,
+    usingShield: false
   };
 };

@@ -4,12 +4,13 @@ import "./CharacterView.css";
 import { CharacterContext } from "../contexts/CharacterContext";
 import CharacterDisplay from "./CharacterDisplay";
 
-import { equip, unequip, dropItem } from "../utils/inventory";
+import { equip, unequip, dropItem, useShield } from "../utils/inventory";
 
 export const CharacterSheet: React.FC = () => {
   const ctx = useContext(CharacterContext);
   if (!ctx) throw new Error("CharacterSheet must be used within a CharacterProvider");
   const { character, setCharacter } = ctx;
+  
 
   /* -------------------------------------------------------------
    *  Handle the “Use Potion” button that lives inside CharacterDisplay
@@ -53,6 +54,13 @@ export const CharacterSheet: React.FC = () => {
     setCharacter((prev) => dropItem(prev, index));
   };
 
+  /* ------------------------------------------------------------------- */
+  /*  Use shield                                  */
+  /* ------------------------------------------------------------------- */
+  const handleShield = (index: number) => {
+    setCharacter((prev) => useShield(prev));
+  };
+
   return (
     <div>
       <CharacterDisplay
@@ -61,6 +69,7 @@ export const CharacterSheet: React.FC = () => {
         onUnequip={handleUnequip}
         onEquip={handleEquip}
         onDrop={handleDrop}
+        onShield={handleShield}
       />
     </div>
   );

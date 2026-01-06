@@ -2,8 +2,7 @@
 import { type Encounter, type EncounterType } from "../types";
 import { getRandomAnyItem } from "./randomItemGenerator";
 import { initRandomCharacter } from "./characterGenerator";
-import { TRAPS } from "../data/encounterData";
-import { FEATURES } from "../data/encounterData";
+import { TRAPS, FEATURES } from "../data/encounterData";
 
 /* ------------------------------------------------------------------ */
 /*  Public helper – generates a random encounter object.             */

@@ -211,7 +211,6 @@ export const DungeonView: React.FC = () => {
     if (defenseRollD20 === 20) {
       addLog("Critical defense success! Monster’s weapon is dropped.");
       monster.equipment.weapon = EMPTY_WEAPON;
-      /* ----- Update the monster in tile encounter / grid ----------------- */
       ctx.setGrid?.((prev: Grid) => {
         const newGrid = prev.map(r => r.map(t => ({ ...t })));
         newGrid[ctx.player.row][ctx.player.col].encounter!.description = JSON.stringify(monster);
@@ -222,9 +221,19 @@ export const DungeonView: React.FC = () => {
     /* Does the monster hit? ---------------------------------------- */
     if (defenseRoll <= 10 + monsterAttackMod) {
       let dmg = rollDamageFromWeapon(monsterWeapon);
+      if (defenseRollD20 === 1) dmg *= 2;
       dmg = reduceDamage(dmg, character.equipment.armor);
 
-      if (defenseRollD20 === 1) dmg *= 2;
+      /* NEW: shield absorption logic --------------------------------- */
+      if (character.usingShield) {
+        // Shield absorbs all damage and is removed
+        setCharacter(prev => ({
+          ...prev,
+          equipment: { ...prev.equipment, shield: undefined }
+        }));
+        dmg = 0;                         // no damage taken
+        addLog("Your shield absorbed the hit!");
+      }
 
       addLog(`The monster hit you for ${dmg} damage!`);
 
@@ -276,7 +285,6 @@ export const DungeonView: React.FC = () => {
       setCharacter(
         (prev: any) => applyXpAndLevelUp(prev, monster.maxHp)
       );
-
     }
   };
 
@@ -310,14 +318,10 @@ export const DungeonView: React.FC = () => {
     addLog("====================================");
   };
 
-  const handleFight = () => {
-    fight();
-  };
 
   /* ---------- determine what button(s) to show ---------- */
   const currentTile = grid[player.row][player.col];
   const encounterType: EncounterType = currentTile?.encounter?.type ?? "none";
-  const onClick = movePlayer;
 
   /* ---------- render the map ---------- */
   return (
@@ -348,7 +352,7 @@ export const DungeonView: React.FC = () => {
           {(encounterType === "none" ||
             encounterType === "feature" ||
             encounterType === "item") && (
-            <button onClick={onClick} className="action-btn">
+            <button onClick={movePlayer} className="action-btn">
               Move to next room
             </button>
           )}
@@ -360,7 +364,7 @@ export const DungeonView: React.FC = () => {
           )}
 
           {encounterType === "monster" && (
-            <button onClick={handleFight} className="action-btn">
+            <button onClick={fight} className="action-btn">
               Fight monster
             </button>
           )}
