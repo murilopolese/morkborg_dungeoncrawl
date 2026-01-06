@@ -60,79 +60,6 @@ export const DungeonView: React.FC = () => {
     return `./assets/tiles/${bits}.png`;
   };
 
-  // ---------------------------------------------------------------
-//  Helpers – split out of the original huge fight() function
-// ---------------------------------------------------------------
-  /** Attack phase: rolls, hit‑check, damage, XP & level‑up. */
-  const performAttackPhase = (
-    monster: Character,
-    character: Character
-  ): boolean /* returns true if the monster is still alive */ => {
-    const { weapon } = character.equipment;
-    const attackRollD20 = rollDie(20);
-    const attackMod = character.abilities[weapon.test as keyof typeof character.abilities].modifier;
-
-    /** Critical miss – drop the weapon */
-    if (attackRollD20 === 1) {
-      addLog("Critical miss! You dropped your weapon.");
-      addLog("====================================");
-      setCharacter(
-        (prev: Character) => ({
-          ...prev,
-          equipment: { ...prev.equipment, weapon: EMPTY_WEAPON }
-        } as Character)
-      );
-      return true; // monster stays
-    }
-
-    const isCrit = attackRollD20 === 20;
-    if (isCrit) addLog("Critical hit! Double damage will be applied.");
-
-    const attackTotal = attackRollD20 + attackMod;
-    addLog(`Attack roll: ${attackTotal} (d20+${attackMod})`);
-
-    /* ----- Hit check ---------------------------------------------- */
-    const monsterAgilityMod = monster.abilities?.["Agility"]?.modifier ?? 0;
-    const monsterArmor = monster.equipment?.armor ?? { defenseDr: 0 };
-    const hitThreshold = 10 + monsterAgilityMod - (monsterArmor.defenseDr || 0);
-
-    if (attackTotal <= hitThreshold) {
-      addLog("Your attack missed!");
-      return true; // monster stays
-    }
-
-    /* ----- Damage calculation -------------------------------------- */
-    let dmg = rollDamageFromWeapon(weapon);
-    dmg = reduceDamage(dmg, monsterArmor);          // apply monster’s DR
-    if (isCrit) dmg *= 2;
-    addLog(`You hit the monster for ${dmg} damage!`);
-
-    const { newHp: monsterNewHp } = applyDamageAndCheckDead( monster.hp ?? 0, dmg );
-    monster.hp = monsterNewHp;
-
-    /* ----- Critical hit – drop armor -------------------------------- */
-    if (isCrit && monster.equipment?.armor) {
-      addLog("Critical hit: Monster’s armor is dropped!");
-      monster.equipment.armor = EMPTY_ARMOR;
-    }
-
-    /* ----- XP & level‑up ------------------------------------------- */
-    //setCharacter((prev: any) => applyXpAndLevelUp(prev, dmg, addLog));
-
-    /* ----- Update the grid (monster may have died) ----------------- */
-    ctx.setGrid?.((prev: Grid) => {
-      const newGrid = prev.map(r => r.map(t => ({ ...t })));
-      if (monster.hp <= 0) {
-        newGrid[ctx.player.row][ctx.player.col].encounter = { type: "none" };
-      } else {
-        newGrid[ctx.player.row][ctx.player.col].encounter!.description = JSON.stringify(monster);
-      }
-      return newGrid;
-    });
-
-    return monster.hp > 0; // true if monster still alive
-  };
-
   /** XP handling & level‑up logic (called from performAttackPhase). */
   const applyXpAndLevelUp = (
     prev: Character,
@@ -178,71 +105,153 @@ export const DungeonView: React.FC = () => {
     return { ...prev, xp: newXp };
   };
 
-  /** Defense phase: monster’s attack on the player. */
+  /* ------------------------------------------------------------------
+   Helper that updates the grid when a monster changes state.
+------------------------------------------------------------------- */
+  const setMonster = (monster: Character) => {
+    ctx.setGrid?.((prev: Grid) => {
+      const newGrid = prev.map(r => r.map(t => ({ ...t })));
+      if (monster.hp <= 0) {
+        newGrid[ctx.player.row][ctx.player.col].encounter = { type: "none" };
+      } else {
+        newGrid[ctx.player.row][ctx.player.col].encounter!.description =
+          JSON.stringify(monster);
+      }
+      return newGrid;
+    });
+  };
+
+  /* ------------------------------------------------------------------
+    Attack phase – now returns the updated character & monster.
+  ------------------------------------------------------------------- */
+  const performAttackPhase = (
+    monster: Character,
+    character: Character
+  ): { monster: Character; character: Character; alive: boolean } => {
+    const localChar = { ...character };          // work on a copy
+    const localMonster = { ...monster };
+
+    /* --- weapon handling ------------------------------------------ */
+    const { weapon } = localChar.equipment;
+    const attackRollD20 = rollDie(20);
+    const attackMod =
+      localChar.abilities[weapon.test as keyof typeof localChar.abilities]
+        .modifier;
+
+    if (attackRollD20 === 1) {
+      addLog("Critical miss! You dropped your weapon.");
+      addLog("====================================");
+      localChar.equipment.weapon = EMPTY_WEAPON;
+    }
+
+    const isCrit = attackRollD20 === 20;
+    if (isCrit) addLog("Critical hit! Double damage will be applied.");
+
+    const attackTotal = attackRollD20 + attackMod;
+    addLog(`Attack roll: ${attackTotal} (d20+${attackMod})`);
+
+    /* --- hit check ----------------------------------------------- */
+    const monsterAgilityMod =
+      localMonster.abilities?.["Agility"]?.modifier ?? 0;
+    const monsterArmor = localMonster.equipment?.armor ?? { defenseDr: 0 };
+    const hitThreshold =
+      10 + monsterAgilityMod - (monsterArmor.defenseDr || 0);
+
+    if (attackTotal <= hitThreshold) {
+      addLog("Your attack missed!");
+      setMonster(localMonster);          // nothing changed, but keep grid sync
+      return { monster: localMonster, character: localChar, alive: true };
+    }
+
+    /* --- damage ----------------------------------------------- */
+    let dmg = rollDamageFromWeapon(weapon);
+    dmg = reduceDamage(dmg, monsterArmor);
+    if (isCrit) dmg *= 2;
+    addLog(`You hit the monster for ${dmg} damage!`);
+
+    const { newHp: monsterNewHp } = applyDamageAndCheckDead(
+      localMonster.hp ?? 0,
+      dmg
+    );
+    localMonster.hp = monsterNewHp;
+
+    if (isCrit && localMonster.equipment?.armor) {
+      addLog("Critical hit: Monster’s armor is dropped!");
+      localMonster.equipment.armor = EMPTY_ARMOR;
+    }
+
+    /* --- XP / level‑up ------------------------------------------ */
+    const updatedCharAfterXp =
+      applyXpAndLevelUp(localChar, dmg); // returns new character
+
+    setMonster(localMonster);
+
+    return {
+      monster: localMonster,
+      character: updatedCharAfterXp,
+      alive: localMonster.hp > 0
+    };
+  };
+
+  /* ------------------------------------------------------------------
+    Defense phase – now returns the updated character.
+  ------------------------------------------------------------------- */
   const handleDefensePhase = (
     monster: Character,
     character: Character
-  ): void => {
+  ): Character => {
+    const localChar = { ...character };          // work on a copy
+
     const defenseRollD20 = rollDie(20);
-    const defenseRaw = defenseRollD20 + character.abilities["Agility"].modifier;
-    const charArmorDef = character.equipment.armor?.defenseDr ?? 0;
+    const defenseRaw =
+      defenseRollD20 + localChar.abilities["Agility"].modifier;
+    const charArmorDef = localChar.equipment.armor?.defenseDr ?? 0;
     const defenseRoll = defenseRaw - charArmorDef;
 
     addLog(
-      `Defense roll: ${defenseRoll} (d20+${character.abilities["Agility"].modifier}` +
+      `Defense roll: ${defenseRoll} (d20+${localChar.abilities["Agility"].modifier}` +
         `${charArmorDef > 0 ? ` - ${charArmorDef}` : ""})`
     );
 
-    /* Monster’s attack bonus */
+    /* --- monster attack bonus ------------------------------------ */
     const monsterWeapon = monster.equipment?.weapon ?? { test: "Strength" };
-    const monsterAttackAbilityKey = monsterWeapon.test as keyof typeof character.abilities;
-    const monsterAttackMod = monster.abilities?.[monsterAttackAbilityKey]?.modifier ?? 0;
+    const monsterAttackAbilityKey =
+      monsterWeapon.test as keyof typeof localChar.abilities;
+    const monsterAttackMod =
+      monster.abilities?.[monsterAttackAbilityKey]?.modifier ?? 0;
 
-    /* Critical defense failure – drop armor */
+    /* --- critical defence ---------------------------------------- */
     if (defenseRollD20 === 1) {
       addLog("Critical defense failure! Double damage will be applied.");
-      setCharacter((prev: any) => ({
-        ...prev,
-        equipment: { ...prev.equipment, armor: EMPTY_ARMOR }
-      }));
+      localChar.equipment.armor = EMPTY_ARMOR;
     }
-
-    /* Critical defense success – monster drops its weapon */
     if (defenseRollD20 === 20) {
       addLog("Critical defense success! Monster’s weapon is dropped.");
       monster.equipment.weapon = EMPTY_WEAPON;
-      ctx.setGrid?.((prev: Grid) => {
-        const newGrid = prev.map(r => r.map(t => ({ ...t })));
-        newGrid[ctx.player.row][ctx.player.col].encounter!.description = JSON.stringify(monster);
-        return newGrid;
-      });
+      setMonster(monster);
     }
 
-    /* Does the monster hit? ---------------------------------------- */
+    /* --- hit check ----------------------------------------------- */
     if (defenseRoll <= 10 + monsterAttackMod) {
       let dmg = rollDamageFromWeapon(monsterWeapon);
       if (defenseRollD20 === 1) dmg *= 2;
-      dmg = reduceDamage(dmg, character.equipment.armor);
+      dmg = reduceDamage(dmg, localChar.equipment.armor);
 
-      /* NEW: shield absorption logic --------------------------------- */
-      if (character.usingShield) {
-        // Shield absorbs all damage and is removed
-        setCharacter(prev => ({
-          ...prev,
-          equipment: { ...prev.equipment, shield: undefined }
-        }));
-        dmg = 0;                         // no damage taken
+      /* shield absorption ---------------------------------------- */
+      if (localChar.usingShield) {
+        localChar.equipment.shield = undefined; // removed after use
+        localChar.usingShield = false
+        dmg = 0;
         addLog("Your shield absorbed the hit!");
       }
 
       addLog(`The monster hit you for ${dmg} damage!`);
 
       const { newHp: playerNewHp, dead } = applyDamageAndCheckDead(
-        character.hp,
+        localChar.hp,
         dmg
       );
-
-      setCharacter((prev: any) => ({ ...prev, hp: playerNewHp }));
+      localChar.hp = playerNewHp;
       if (dead) {
         alert("This one died!");
         setIsDead(true);
@@ -252,41 +261,40 @@ export const DungeonView: React.FC = () => {
     }
 
     addLog("====================================");
+    return localChar;
   };
 
-  // ---------------------------------------------------------------
-  //  Updated fight() – now a thin orchestrator
-  // ---------------------------------------------------------------
+  /* ------------------------------------------------------------------
+    The new, single‑call fight orchestrator.
+  ------------------------------------------------------------------- */
   const fight = (): void => {
     const { grid, player } = ctx;
     const currentTile = grid[player.row][player.col];
-    const encounter   = currentTile?.encounter;
+    const encounter = currentTile?.encounter;
 
     if (!encounter || encounter.type !== "monster") return;
 
-    let monster: Character = {} as Character;
-    try {
-      monster = encounter.description ? JSON.parse(encounter.description) : null;
-    } catch (_) {
-      // Ignore
-      return
+    let monster: Character | null =
+      encounter.description ? JSON.parse(encounter.description) : null;
+    if (!monster) return;
+
+    /* --- attack phase -------------------------------------------- */
+    const { monster: afterAttack, character: charAfterAttack, alive } =
+      performAttackPhase(monster, character);
+
+    /* --- defense phase ------------------------------------------- */
+    const updatedChar = handleDefensePhase(afterAttack, charAfterAttack);
+
+    /* --- final XP/level‑up if the monster died ------------------- */
+    let finalChar = updatedChar;
+    if (!alive) {
+      finalChar = applyXpAndLevelUp(updatedChar, afterAttack.maxHp);
     }
 
-    /* ---------- Attack phase --------------------------------------- */
-    const isMonsterAlive = performAttackPhase(monster, character);
-
-    /* ---------- Defense phase -------------------------------------- */
-    handleDefensePhase(
-      monster,
-      character
-    );
-
-    if (!isMonsterAlive) {
-      setCharacter(
-        (prev: any) => applyXpAndLevelUp(prev, monster.maxHp)
-      );
-    }
+    /* --- persist all changes in one go --------------------------- */
+    setCharacter(finalChar);          // ONE single state update
   };
+
 
 
   const escapeTrap = () => {
