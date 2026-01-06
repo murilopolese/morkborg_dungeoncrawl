@@ -57,7 +57,7 @@ export const DungeonView: React.FC = () => {
       .join("");
 
     // images live in /public/assets/tiles/
-    return `/assets/tiles/${bits}.png`;
+    return `./assets/tiles/${bits}.png`;
   };
 
   // ---------------------------------------------------------------
