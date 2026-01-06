@@ -1,7 +1,5 @@
 // src/utils/combat.ts
 import type { Weapon, Armor } from "../types";
-import type { Grid } from "../types";
-import { EMPTY_WEAPON, EMPTY_ARMOR } from "../utils/inventory";
 
 export const rollDie = (sides: number): number => Math.floor(Math.random() * sides) + 1;
 
