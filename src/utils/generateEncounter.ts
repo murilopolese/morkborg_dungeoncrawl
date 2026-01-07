@@ -1,7 +1,7 @@
 // src/utils/generateEncounter.ts
 import { type Encounter, type EncounterType } from "../types";
 import { getRandomAnyItem } from "./randomItemGenerator";
-import { initRandomCharacter } from "./characterGenerator";
+import { initRandomMonster } from "./monsterGenerator";
 import { TRAPS, FEATURES } from "../data/encounterData";
 
 /* ------------------------------------------------------------------ */
@@ -33,7 +33,7 @@ export const generateEncounter = (): Encounter => {
       break;
 
     case "monster":
-      desc = JSON.stringify(initRandomCharacter(), null, 2);
+      desc = JSON.stringify(initRandomMonster(), null, 2);
       break;
 
     default:

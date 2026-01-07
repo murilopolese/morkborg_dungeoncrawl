@@ -57,7 +57,7 @@ export const CharacterSheet: React.FC = () => {
   /* ------------------------------------------------------------------- */
   /*  Use shield                                  */
   /* ------------------------------------------------------------------- */
-  const handleShield = (index: number) => {
+  const handleShield = () => {
     setCharacter((prev) => useShield(prev));
   };
 

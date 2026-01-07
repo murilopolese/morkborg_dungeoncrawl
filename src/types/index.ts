@@ -22,6 +22,13 @@ export interface Character {
   inventory: Item[];
 }
 
+export interface Monster {
+  abilities: Record<AbilityKey, Ability>;
+  hp: number;
+  maxHp: number;
+  equipment: Equipment;
+}
+
 /* ---------- Item definitions -------------------------------------- */
 export type Weapon = {
   category: "Weapon";

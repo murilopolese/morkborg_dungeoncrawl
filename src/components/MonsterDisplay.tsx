@@ -1,16 +1,16 @@
-// src/components/EncounterSheet.tsx
+// src/components/MonsterDisplay.tsx
 import React from "react";
 import {
-  type Character,
+  type Monster,
   type AbilityKey,
   type Item,
 } from "../types";
 
 import "./CharacterView.css";   // keeps the same styling
 
-export interface EncounterSheetProps {
+export interface MonsterDisplayProps {
   /** The character to render */
-  character: Character;
+  monster: Monster;
   /** Optional reset callback – if omitted the button is hidden. */
   onReset?: () => void;
 
@@ -23,15 +23,15 @@ export interface EncounterSheetProps {
   onPotionUse?: (index: number) => void;
 }
 
-const EncounterSheet: React.FC<EncounterSheetProps> = ({
-  character
+const MonsterDisplay: React.FC<MonsterDisplayProps> = ({
+  monster
 }) => {
   const modText = (mod: number) =>
     mod >= 0 ? `+${mod}` : `${mod}`;
 
   return (
     <div className="container">
-      <h2 className="title">Random Character</h2>
+      <h2 className="title">Dangerous Encounter</h2>
 
       {/* Abilities */}
       <table className="sheet-table">
@@ -43,12 +43,12 @@ const EncounterSheet: React.FC<EncounterSheetProps> = ({
           </tr>
         </thead>
         <tbody>
-          {(Object.keys(character.abilities) as AbilityKey[]).map((k) => (
+          {(Object.keys(monster.abilities) as AbilityKey[]).map((k) => (
             <tr key={k}>
               <td>{k}</td>
-              <td className="right">{character.abilities[k].value}</td>
+              <td className="right">{monster.abilities[k].value}</td>
               <td className="right">
-                {modText(character.abilities[k].modifier)}
+                {modText(monster.abilities[k].modifier)}
               </td>
             </tr>
           ))}
@@ -57,9 +57,7 @@ const EncounterSheet: React.FC<EncounterSheetProps> = ({
 
       {/* XP / Level / HP */}
       <div className="stat">
-        <strong>HP:</strong> {character.hp} ({character.maxHp}) /{" "}
-        <strong>Level:</strong> {character.level} / <strong>XP:</strong>{" "}
-        {character.xp}
+        <strong>HP:</strong> {monster.hp} ({monster.maxHp})
       </div>
 
       {/* Equipped Items */}
@@ -75,18 +73,18 @@ const EncounterSheet: React.FC<EncounterSheetProps> = ({
         <tbody>
           <tr>
             <td>Weapon</td>
-            <td>{character.equipment.weapon.name} ({character.equipment.weapon.damage})</td>
+            <td>{monster.equipment.weapon.name} ({monster.equipment.weapon.damage})</td>
           </tr>
           <tr>
             <td>
               Armor
             </td>
-            <td>{character.equipment.armor.name} (tier {character.equipment.armor.tier})</td>
+            <td>{monster.equipment.armor.name} (tier {monster.equipment.armor.tier})</td>
           </tr>
-          {character.equipment.shield && (
+          {monster.equipment.shield && (
             <tr>
               <td>Shield</td>
-              <td>{(character.equipment.shield as Item).name}</td>
+              <td>{(monster.equipment.shield as Item).name}</td>
             </tr>
           )}
         </tbody>
@@ -95,4 +93,4 @@ const EncounterSheet: React.FC<EncounterSheetProps> = ({
   );
 };
 
-export default EncounterSheet;
+export default MonsterDisplay;
