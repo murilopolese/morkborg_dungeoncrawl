@@ -1,0 +1,22 @@
+export const CONTACT_PERSON : string[] = [
+    "One-eyed woman who rules the thieves",
+    "Bureaucrat with enemies and no honor",
+    "Badly burned priest",
+    "Noble child said to see dark visions",
+    "Warrior that switched loyalties",
+    "Faint whispers from the crypt",
+    "Remorseful hangman",
+    "Tortured traitor",
+    "Reccuring vision in a horrid nightmare",
+    "Hermit mocked by the other cave-folk",
+    "Demented elder",
+    "Sacrifice who escaped a death-cult",
+    "Monk who was bitten at night",
+    "Unshaved mystic at The Paunchy Swine",
+    "Devastated mother dressed in white",
+    "Sailor too long at sea",
+    "Scoundrel covered in ulcers",
+    "Drunk seeress with no teeth",
+    "Restless soul by the name of Ghast",
+    "Terrified soldier with broken knees"
+]

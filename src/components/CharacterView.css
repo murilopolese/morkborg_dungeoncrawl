@@ -43,6 +43,9 @@
 .sheet-table td.right {
   text-align: right;
 }
+.sheet-table button {
+  float: right;
+}
 
 /* --- Stats ------------------------------------------------------ */
 .stat {
@@ -69,6 +72,9 @@
   color: #777;
   font-size: 12px;
   text-align: center;
+}
+.slot button {
+  width: 100%;
 }
 
 /* --- Category label -------------------------------------------- */

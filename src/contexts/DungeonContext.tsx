@@ -1,12 +1,9 @@
 // src/contexts/DungeonContext.tsx
-import React, {
-  createContext,
-  useState,
-  useEffect,
-} from "react";
-import type { Tile, Grid } from "../types";
+import React, { createContext, useState, useEffect } from "react";
+import type { Tile, Grid, Quest } from "../types";
 
 import { generateEncounter } from "../utils/generateEncounter";
+import { generateRandomQuest } from "../utils/generateRandomQuest";
 
 const GRID_SIZE = 4;
 const emptyTile: Tile = { visited: false };
@@ -19,47 +16,50 @@ const makeGrid = (): Grid =>
 export interface DungeonContextType {
   grid: Grid;
   player: { row: number; col: number };
+  level: number;
   movePlayer: () => void;
   resetMap: () => void;
   setGrid?: React.Dispatch<React.SetStateAction<Grid>>;
+  setLevel?: React.Dispatch<React.SetStateAction<number>>;
+  quest: Quest;
+  setQuest?: React.Dispatch<React.SetStateAction<Quest>>;
 }
 
-export const DungeonContext = createContext<
-  DungeonContextType | undefined
->(undefined);
+export const DungeonContext = createContext<DungeonContextType | undefined>(
+  undefined
+);
 
-/* ------------------------------------------------------------------ */
-export const DungeonProvider: React.FC<{
-  children: React.ReactNode;
-}> = ({ children }) => {
-  /* ---------- state ---------- */
+export const DungeonProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [grid, setGrid] = useState<Grid>(makeGrid());
-  const [player, setPlayer] = useState<{ row: number; col: number }>(() => ({
+  const [player, setPlayer] = useState<{
+    row: number;
+    col: number;
+  }>(() => ({
     row: Math.floor(Math.random() * GRID_SIZE),
     col: Math.floor(Math.random() * GRID_SIZE),
   }));
+  const [level, setLevel] = useState<number>(1);
+  const [quest, setQuest] = useState<Quest>(generateRandomQuest());
 
-  /* ---------- initialise the starting tile ---------- */
   useEffect(() => {
     setGrid((prev) => {
-      const next = prev.map((r) =>
-        r.map((t) => ({ ...t }))
-      );
+      const next = prev.map((r) => r.map((t) => ({ ...t })));
       const t = next[player.row][player.col];
       t.visited = true;
-      t.encounter = generateEncounter(); // <‑‑ new
+      t.encounter = generateEncounter();
       return next;
     });
-  }, []); /* only once */
+  }, []);
 
-  /* ---------- helpers ---------- */
   const resetMap = () => {
     const newGrid = makeGrid();
     const r = Math.floor(Math.random() * GRID_SIZE);
     const c = Math.floor(Math.random() * GRID_SIZE);
     const t = newGrid[r][c];
     t.visited = true;
-    t.encounter = generateEncounter(); // <‑‑ new
+    t.encounter = generateEncounter();
     setGrid(newGrid);
     setPlayer({ row: r, col: c });
   };
@@ -86,38 +86,43 @@ export const DungeonProvider: React.FC<{
       );
 
     if (candidates.length === 0) {
+      setLevel((prev) => prev + 1);
       resetMap();
       return;
     }
 
-    const chosen =
-      candidates[Math.floor(Math.random() * candidates.length)];
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)];
     const newGrid = grid.map((r) => r.map((t) => ({ ...t })));
 
-    // mark current tile as having moved to the new spot
     newGrid[row][col].wentTo = {
       row: chosen.row,
       col: chosen.col,
     };
 
-    // mark new tile as visited and record where we came from
     const nextTile = {
       visited: true,
       cameFrom: { row, col },
+      encounter: generateEncounter()
     } as Tile;
-    if (!nextTile.encounter) {
-      nextTile.encounter = generateEncounter(); // <‑‑ new
-    }
     newGrid[chosen.row][chosen.col] = nextTile;
 
     setGrid(newGrid);
     setPlayer({ row: chosen.row, col: chosen.col });
   };
 
-  /* ---------- context value ---------- */
   return (
     <DungeonContext.Provider
-      value={{ grid, player, movePlayer, resetMap, setGrid }}
+      value={{
+        grid,
+        player,
+        level,
+        movePlayer,
+        resetMap,
+        setGrid,
+        setLevel,
+        quest,
+        setQuest
+      }}
     >
       {children}
     </DungeonContext.Provider>

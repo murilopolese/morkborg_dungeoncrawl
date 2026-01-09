@@ -1,0 +1,22 @@
+export const OCCULT_TREASURES : string[] = [
+    "Aether Crystal",
+    "Void Tome",
+    "Obsidian Sigil",
+    "Midnight Shard",
+    "Umbral Amulet",
+    "Nebula Scepter",
+    "Spectral Lens",
+    "Cursed Orb",
+    "Phantasmal Chalice",
+    "Rune Pendant",
+    "Whispering Grimoire",
+    "Arcane Compass",
+    "Ethereal Cloak",
+    "Dreaded Talisman",
+    "Shadowbane Axe",
+    "Celestial Mirror",
+    "Forgotten Relic",
+    "Eclipsed Stone",
+    "Infernal Key",
+    "Mystic Veil"
+]

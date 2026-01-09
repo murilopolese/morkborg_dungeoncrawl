@@ -81,12 +81,6 @@ const MonsterDisplay: React.FC<MonsterDisplayProps> = ({
             </td>
             <td>{monster.equipment.armor.name} (tier {monster.equipment.armor.tier})</td>
           </tr>
-          {monster.equipment.shield && (
-            <tr>
-              <td>Shield</td>
-              <td>{(monster.equipment.shield as Item).name}</td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>

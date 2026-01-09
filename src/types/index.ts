@@ -8,6 +8,7 @@ export interface Ability {
 }
 
 export interface Character {
+  name: string,
   abilities: Record<AbilityKey, Ability>;
   xp: number;
   level: number;
@@ -20,6 +21,14 @@ export interface Character {
 
   equipment: Equipment;
   inventory: Item[];
+}
+
+export interface Quest {
+  dungeonName: string;
+  weather: string;
+  location: string;
+  contact: string;
+  occultTreasure: string;
 }
 
 export interface Monster {

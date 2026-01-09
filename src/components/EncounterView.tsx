@@ -42,13 +42,13 @@ export const EncounterView: React.FC = () => {
       break;
 
     default: // none
-      content = <p>This room is empty.</p>;
+      content = <p>{encounter.description}</p>;
   }
 
   /* ---------- JSX ----------------------------------------------- */
   return (
     <div className="encounter-view">
-      <h2>Current Encounter</h2>
+      <h2>Current Room</h2>
       {content}
     </div>
   );

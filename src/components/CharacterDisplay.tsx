@@ -31,9 +31,13 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
   const modText = (mod: number) => (mod >= 0 ? `+${mod}` : `${mod}`);
   const getItem = (idx: number) => character.inventory[idx];
 
+  // <‑‑ NEW LINE -------------------------------------------------
+  const isAlive = character.hp > 0;
+  // ----------------------------------------------------------------
+
   return (
     <div className="container">
-      <h2 className="title">Random Character</h2>
+      <h2 className="title">Character name: {character.name}</h2>
 
       {/* Abilities */}
       <table className="sheet-table">
@@ -79,7 +83,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
             <td>
               {character.equipment.weapon?.name} ({character.equipment.weapon?.damage})
               {character.equipment.weapon?.name !== EMPTY_WEAPON.name &&
-                onUnequip && (
+                isAlive && onUnequip && (
                   <button
                     className="unequip-btn"
                     onClick={() => onUnequip("weapon")}
@@ -97,7 +101,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
               {character.equipment.armor?.name} (tier{" "}
               {character.equipment.armor?.tier})
               {character.equipment.armor?.name !== EMPTY_ARMOR.name &&
-                onUnequip && (
+                isAlive && onUnequip && (
                   <button
                     className="unequip-btn"
                     onClick={() => onUnequip("armor")}
@@ -115,7 +119,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
               <td>
                 {(character.equipment.shield as Item).name}
                 {!character.usingShield &&
-                  onUnequip && (
+                  isAlive && onUnequip && (
                     <button
                       className="unequip-btn"
                       onClick={() => onUnequip("shield")}
@@ -125,7 +129,7 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                   )}
                 {/* Sacrifice button – shown only when not using shield */}
                 {!character.usingShield &&
-                  onShield && (
+                  isAlive && onShield && (
                     <button
                       className="sacrifice-btn"
                       onClick={onShield}
@@ -164,7 +168,8 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
                     <div className="damage">{(itm as Weapon).damage}</div>
                   )}
 
-                  {(character.hp > 0) && (
+                  {/* All buttons are guarded by `isAlive` ----------------- */}
+                  {isAlive && (
                     <>
                       {itm!.category === "Potion" &&
                         onPotionUse && (

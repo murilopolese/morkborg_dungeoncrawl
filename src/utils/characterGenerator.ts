@@ -14,8 +14,21 @@ import {
   generateStartingInventory,
 } from "./randomItemGenerator";
 
+import { NAMES } from "../data/names";
+
+export const generateRandomName = (): string => {
+  // Get two random distinct indices
+  const firstIndex = Math.floor(Math.random() * NAMES.length);
+  let secondIndex;
+  do {
+    secondIndex = Math.floor(Math.random() * NAMES.length);
+  } while (secondIndex === firstIndex);
+  
+  return `${NAMES[firstIndex]} ${NAMES[secondIndex]}`;
+};
+
 /* ------------------------------------------------------------------
-   Random character generator -------------------------------------- */
+Random character generator -------------------------------------- */
 
 export const initRandomCharacter = (): Character => {
   /* ---- abilities ------------------------------------------------- */
@@ -25,13 +38,14 @@ export const initRandomCharacter = (): Character => {
     Presence: { value: randInt(8, 20), modifier: 0 },
     Toughness: { value: randInt(8, 20), modifier: 0 },
   };
-
+  
   Object.keys(abilities).forEach((k) => {
     const key = k as AbilityKey;
     abilities[key].modifier = getModifier(abilities[key].value);
   });
-
+  
   /* ---- XP / level / HP ------------------------------------------ */
+  const name = generateRandomName()
   const xp = 1;                     // <-- start at zero
   const level = computeLevel(xp);   // will be 0 with the new rule
   const maxHp = computeHP(abilities.Toughness.value);
@@ -47,6 +61,7 @@ export const initRandomCharacter = (): Character => {
   const inventory: Item[] = generateStartingInventory();
 
   return {
+    name,
     abilities,
     xp,
     level,

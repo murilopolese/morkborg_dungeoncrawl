@@ -10,6 +10,7 @@ import { EMPTY_WEAPON, EMPTY_ARMOR } from "../utils/inventory";
 
 import './DungeonView.css';
 import { getModifier } from "../utils/random";
+import { getHighestAttribute } from "../utils/getHighestAttribute";
 
 
 export const DungeonView: React.FC = () => {
@@ -18,7 +19,7 @@ export const DungeonView: React.FC = () => {
   const charCtx = useContext(CharacterContext)
   if (!charCtx) throw new Error("DungeonView must be used inside CharacterContext");
 
-  const { grid, player, movePlayer, resetMap } = ctx;
+  const { grid, player, movePlayer, resetMap, quest } = ctx;
   const { character, setCharacter } = charCtx;
   const [isDead, setIsDead] = useState(false);
   const [logEntries, setLogEntries] = useState<string[]>([]);
@@ -181,14 +182,13 @@ export const DungeonView: React.FC = () => {
     }
 
     /* --- XP / level‑up ------------------------------------------ */
-    const updatedCharAfterXp =
-      applyXpAndLevelUp(localChar, dmg); // returns new character
+    //const updatedCharAfterXp = applyXpAndLevelUp(localChar, dmg); // returns new character
 
     setMonster(localMonster);
 
     return {
       monster: localMonster,
-      character: updatedCharAfterXp,
+      character: localChar,
       alive: localMonster.hp > 0
     };
   };
@@ -264,36 +264,90 @@ export const DungeonView: React.FC = () => {
     return localChar;
   };
 
+// ------------------------------------------------------------------
+//  Fight orchestrator – guarantees at least one side takes damage per round
+// ------------------------------------------------------------------
+const fight = (): void => {
+  const { grid, player } = ctx;
+  const currentTile = grid[player.row][player.col];
+  const encounter = currentTile?.encounter;
+
+  if (!encounter || encounter.type !== "monster") return;
+
+  // Parse the monster that lives in this tile
+  let monster: Character | null =
+    encounter.description ? JSON.parse(encounter.description) : null;
+  if (!monster) return;
+
   /* ------------------------------------------------------------------
-    The new, single‑call fight orchestrator.
-  ------------------------------------------------------------------- */
-  const fight = (): void => {
-    const { grid, player } = ctx;
-    const currentTile = grid[player.row][player.col];
-    const encounter = currentTile?.encounter;
+     Working copies of the character & monster so we can keep looping.
+  ------------------------------------------------------------------ */
+  let curChar = { ...character };
+  let curMon  = { ...monster };
 
-    if (!encounter || encounter.type !== "monster") return;
+  const maxAttempts = 20;          // safety guard – never loop forever
+  let attempts = 0;
 
-    let monster: Character | null =
-      encounter.description ? JSON.parse(encounter.description) : null;
-    if (!monster) return;
+  while (attempts < maxAttempts) {
+    /* ---- capture pre‑round state --------------------------------- */
+    const prevMonHp     = curMon.hp ?? 0;
+    const prevCharHp    = curChar.hp;
+    const prevMonEquip  = JSON.stringify(curMon.equipment);
+    const prevCharEquip = JSON.stringify(curChar.equipment);
 
-    /* --- attack phase -------------------------------------------- */
-    const { monster: afterAttack, character: charAfterAttack, alive } =
-      performAttackPhase(monster, character);
+    /* ---- Attack phase ------------------------------------------------ */
+    const {
+      monster: afterAttack,
+      character: charAfterAttack,
+      alive
+    } = performAttackPhase(curMon, curChar);
 
-    /* --- defense phase ------------------------------------------- */
-    const updatedChar = handleDefensePhase(afterAttack, charAfterAttack);
-
-    /* --- final XP/level‑up if the monster died ------------------- */
-    let finalChar = updatedChar;
-    if (!alive) {
-      finalChar = applyXpAndLevelUp(updatedChar, afterAttack.maxHp);
+    /* ---- Defense phase – only if the monster survived ---------- */
+    let updatedChar: Character;
+    if (alive) {
+      updatedChar = handleDefensePhase(afterAttack, charAfterAttack);
+    } else {
+      // Monster died in the attack phase – no defense needed
+      updatedChar = charAfterAttack;
     }
 
-    /* --- persist all changes in one go --------------------------- */
-    setCharacter(finalChar);          // ONE single state update
-  };
+    /* ---- prepare for next iteration ----------------------------- */
+    curMon  = afterAttack;
+    curChar = updatedChar;
+
+    /* ---- Did something happen? ----------------------------------- */
+    const monDamaged        = (curMon.hp ?? 0) < prevMonHp;
+    const charDamaged       = curChar.hp < prevCharHp;
+    const monEquipChanged   = JSON.stringify(curMon.equipment) !== prevMonEquip;
+    const charEquipChanged  = JSON.stringify(curChar.equipment) !== prevCharEquip;
+
+    if (!alive || monDamaged || charDamaged || monEquipChanged || charEquipChanged) {
+      // At least one side took damage / dropped equipment / monster died
+      break;
+    }
+
+    attempts++;   // nothing changed – retry a new round
+  }
+
+  /* ------------------------------------------------------------------
+     Final XP/level‑up (only if the monster is dead after all rounds)
+  ------------------------------------------------------------------ */
+  let finalCharacter = curChar;
+  const monsterAlive = curMon.hp! > 0;
+
+  if (!monsterAlive) {
+    // The amount of damage you dealt during the fight is stored in
+    // `curMon.maxHp` – this matches the original (commented‑out) logic.
+    finalCharacter = applyXpAndLevelUp(curChar, curMon.maxHp);
+  }
+
+  /* ------------------------------------------------------------------
+     Persist all changes: update character state and sync the grid
+  ------------------------------------------------------------------ */
+  setCharacter(finalCharacter);
+  setMonster(curMon);   // clears the encounter if hp <= 0
+};
+
 
 
 
@@ -334,6 +388,16 @@ export const DungeonView: React.FC = () => {
   /* ---------- render the map ---------- */
   return (
     <div>
+      <h2>{quest.dungeonName} (floor {ctx.level})</h2>
+      <p>
+        A series of questionable decisions brought you here at: {quest.dungeonName}. It's a {quest.weather} weather {quest.location}.
+        Since you talked with that {quest.contact} about the {quest.occultTreasure} you feel possessed. 
+        You can't look back, all you can do is choose what you'll have in hands when you get to get to the bottom of it.
+        People once called you {character.name} and you were known for your {getHighestAttribute(character).join('/')}.
+        To get through what's on your path you use {character.equipment.weapon.damage == '1d2' ? 'your bare hands' : `a ${character.equipment.weapon.name}`} and
+        to protect yourself you have {character.equipment.armor.tier == 0 ? 'barely any clothes' : `a ${character.equipment.armor.name} armor`}.
+
+      </p>
       <div className="dungeon">
         {grid.map((row, i) =>
           row.map((tile, j) => {
@@ -382,6 +446,7 @@ export const DungeonView: React.FC = () => {
       {isDead && (
         <button
           onClick={() => {
+            ctx.setLevel?.(1);
             resetMap();
             setCharacter(initRandomCharacter());
             setIsDead(false);
