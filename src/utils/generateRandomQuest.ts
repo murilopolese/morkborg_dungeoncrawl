@@ -6,14 +6,6 @@ import { WEATHER } from "../data/weather";
 import { OCCULT_TREASURES } from "../data/occultTreasures";
 import { DUNGEON_NAME, DUNGEON_LOCATION } from "../data/dungeonName";
 
-
-const occultTreasures = [
-  "Aether Crystal",
-  "Eldritch Codex",
-  "Shadow Relic",
-  "Phantom Blade",
-];
-
 export function generateRandomQuest(): Quest {
   const randomFromArray = <T>(arr: T[]) =>
     arr[Math.floor(Math.random() * arr.length)];

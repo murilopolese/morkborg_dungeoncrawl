@@ -3,7 +3,6 @@ import React from "react";
 import {
   type Monster,
   type AbilityKey,
-  type Item,
 } from "../types";
 
 import "./CharacterView.css";   // keeps the same styling
