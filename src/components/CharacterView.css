@@ -61,12 +61,13 @@
 }
 .slot {
   width: 120px;
-  min-height: 30px;
+  min-height: 120px;
   border: 1px solid #555;
   background-color: #222;
   padding: 4px;
   box-sizing: border-box;
   color: #eee;
+  /* font-size: 12px; */
 }
 .empty-slot {
   color: #777;

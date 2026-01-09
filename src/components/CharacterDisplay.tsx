@@ -52,8 +52,8 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
           {(Object.keys(character.abilities) as AbilityKey[]).map((k) => (
             <tr key={k}>
               <td>{k}</td>
-              <td className="right">{character.abilities[k].value}</td>
-              <td className="right">{modText(character.abilities[k].modifier)}</td>
+              <td>{character.abilities[k].value}</td>
+              <td>{modText(character.abilities[k].modifier)}</td>
             </tr>
           ))}
         </tbody>
@@ -160,13 +160,12 @@ const CharacterDisplay: React.FC<CharacterDisplayProps> = ({
             >
               {!isEmpty && (
                 <>
-                  <strong>{itm!.name}</strong>
-                  <br />
-                  <span className="category">{(itm as any).category}</span>
+                  <p>{itm!.name}</p>
+                  <p>
+                    {(itm as any).category}
+                    {itm!.category === "Weapon" && <>({(itm as Weapon).damage})</>}
+                  </p>
 
-                  {itm!.category === "Weapon" && (
-                    <div className="damage">{(itm as Weapon).damage}</div>
-                  )}
 
                   {/* All buttons are guarded by `isAlive` ----------------- */}
                   {isAlive && (

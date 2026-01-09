@@ -23,6 +23,8 @@ export interface DungeonContextType {
   setLevel?: React.Dispatch<React.SetStateAction<number>>;
   quest: Quest;
   setQuest?: React.Dispatch<React.SetStateAction<Quest>>;
+  victory: boolean,
+  setVictory?: React.Dispatch<boolean>
 }
 
 export const DungeonContext = createContext<DungeonContextType | undefined>(
@@ -42,6 +44,7 @@ export const DungeonProvider: React.FC<{ children: React.ReactNode }> = ({
   }));
   const [level, setLevel] = useState<number>(1);
   const [quest, setQuest] = useState<Quest>(generateRandomQuest());
+  const [victory, setVictory] = useState(false);
 
   useEffect(() => {
     setGrid((prev) => {
@@ -121,7 +124,9 @@ export const DungeonProvider: React.FC<{ children: React.ReactNode }> = ({
         setGrid,
         setLevel,
         quest,
-        setQuest
+        setQuest,
+        victory,
+        setVictory
       }}
     >
       {children}

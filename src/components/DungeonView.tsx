@@ -1,16 +1,17 @@
 // src/components/DungeonView.tsx
-import React, { useCallback, useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 import { DungeonContext } from "../contexts/DungeonContext";
-import { GameLog } from "./GameLog";
 import type { Character, EncounterType, Grid } from "../types";
 import { CharacterContext } from "../contexts/CharacterContext";
+import { LogContext } from "../contexts/LogContext";
 import { initRandomCharacter } from "../utils/characterGenerator";
 import { rollDie, applyDamageAndCheckDead, rollDamageFromWeapon, reduceDamage } from "../utils/combat";
 import { EMPTY_WEAPON, EMPTY_ARMOR } from "../utils/inventory";
 
 import './DungeonView.css';
 import { getModifier } from "../utils/random";
-import { getHighestAttribute } from "../utils/getHighestAttribute";
+import { generateDungeonDescription } from "../utils/generateIntro";
+import { generateRandomQuest } from "../utils/generateRandomQuest";
 
 
 export const DungeonView: React.FC = () => {
@@ -18,21 +19,15 @@ export const DungeonView: React.FC = () => {
   if (!ctx) throw new Error("DungeonView must be used inside DungeonProvider");
   const charCtx = useContext(CharacterContext)
   if (!charCtx) throw new Error("DungeonView must be used inside CharacterContext");
+  const logCtx = useContext(LogContext);
+  if (!logCtx) throw new Error("DungeonView must be used inside LogProvider");
+  const { addLog, clearLog } = logCtx;
+
 
   const { grid, player, movePlayer, resetMap, quest } = ctx;
   const { character, setCharacter } = charCtx;
   const [isDead, setIsDead] = useState(false);
-  const [logEntries, setLogEntries] = useState<string[]>([]);
 
-  /** Push a new entry into the log */
-  const addLog = useCallback((msg: string) => {
-    setLogEntries(prev => [...prev, msg]);
-  }, []);
-
-  /** Clear all entries – used when you die and respawn */
-  const clearLog = useCallback(() => {
-    setLogEntries([]);
-  }, []);
   /* ---------- helper that returns the image path for a tile ---------- */
   const getTileImage = (tile: typeof grid[0][0], r: number, c: number): string | undefined => {
     if (!tile.visited) return undefined;          // only visited tiles have an image
@@ -264,89 +259,89 @@ export const DungeonView: React.FC = () => {
     return localChar;
   };
 
-// ------------------------------------------------------------------
-//  Fight orchestrator – guarantees at least one side takes damage per round
-// ------------------------------------------------------------------
-const fight = (): void => {
-  const { grid, player } = ctx;
-  const currentTile = grid[player.row][player.col];
-  const encounter = currentTile?.encounter;
+  // ------------------------------------------------------------------
+  //  Fight orchestrator – guarantees at least one side takes damage per round
+  // ------------------------------------------------------------------
+  const fight = (): void => {
+    const { grid, player } = ctx;
+    const currentTile = grid[player.row][player.col];
+    const encounter = currentTile?.encounter;
 
-  if (!encounter || encounter.type !== "monster") return;
+    if (!encounter || encounter.type !== "monster") return;
 
-  // Parse the monster that lives in this tile
-  let monster: Character | null =
-    encounter.description ? JSON.parse(encounter.description) : null;
-  if (!monster) return;
+    // Parse the monster that lives in this tile
+    let monster: Character | null =
+      encounter.description ? JSON.parse(encounter.description) : null;
+    if (!monster) return;
 
-  /* ------------------------------------------------------------------
-     Working copies of the character & monster so we can keep looping.
-  ------------------------------------------------------------------ */
-  let curChar = { ...character };
-  let curMon  = { ...monster };
+    /* ------------------------------------------------------------------
+      Working copies of the character & monster so we can keep looping.
+    ------------------------------------------------------------------ */
+    let curChar = { ...character };
+    let curMon  = { ...monster };
 
-  const maxAttempts = 20;          // safety guard – never loop forever
-  let attempts = 0;
+    const maxAttempts = 20;          // safety guard – never loop forever
+    let attempts = 0;
 
-  while (attempts < maxAttempts) {
-    /* ---- capture pre‑round state --------------------------------- */
-    const prevMonHp     = curMon.hp ?? 0;
-    const prevCharHp    = curChar.hp;
-    const prevMonEquip  = JSON.stringify(curMon.equipment);
-    const prevCharEquip = JSON.stringify(curChar.equipment);
+    while (attempts < maxAttempts) {
+      /* ---- capture pre‑round state --------------------------------- */
+      const prevMonHp     = curMon.hp ?? 0;
+      const prevCharHp    = curChar.hp;
+      const prevMonEquip  = JSON.stringify(curMon.equipment);
+      const prevCharEquip = JSON.stringify(curChar.equipment);
 
-    /* ---- Attack phase ------------------------------------------------ */
-    const {
-      monster: afterAttack,
-      character: charAfterAttack,
-      alive
-    } = performAttackPhase(curMon, curChar);
+      /* ---- Attack phase ------------------------------------------------ */
+      const {
+        monster: afterAttack,
+        character: charAfterAttack,
+        alive
+      } = performAttackPhase(curMon, curChar);
 
-    /* ---- Defense phase – only if the monster survived ---------- */
-    let updatedChar: Character;
-    if (alive) {
-      updatedChar = handleDefensePhase(afterAttack, charAfterAttack);
-    } else {
-      // Monster died in the attack phase – no defense needed
-      updatedChar = charAfterAttack;
+      /* ---- Defense phase – only if the monster survived ---------- */
+      let updatedChar: Character;
+      if (alive) {
+        updatedChar = handleDefensePhase(afterAttack, charAfterAttack);
+      } else {
+        // Monster died in the attack phase – no defense needed
+        updatedChar = charAfterAttack;
+      }
+
+      /* ---- prepare for next iteration ----------------------------- */
+      curMon  = afterAttack;
+      curChar = updatedChar;
+
+      /* ---- Did something happen? ----------------------------------- */
+      const monDamaged        = (curMon.hp ?? 0) < prevMonHp;
+      const charDamaged       = curChar.hp < prevCharHp;
+      const monEquipChanged   = JSON.stringify(curMon.equipment) !== prevMonEquip;
+      const charEquipChanged  = JSON.stringify(curChar.equipment) !== prevCharEquip;
+
+      if (!alive || monDamaged || charDamaged || monEquipChanged || charEquipChanged) {
+        // At least one side took damage / dropped equipment / monster died
+        break;
+      }
+
+      attempts++;   // nothing changed – retry a new round
     }
 
-    /* ---- prepare for next iteration ----------------------------- */
-    curMon  = afterAttack;
-    curChar = updatedChar;
+    /* ------------------------------------------------------------------
+      Final XP/level‑up (only if the monster is dead after all rounds)
+    ------------------------------------------------------------------ */
+    let finalCharacter = curChar;
+    const monsterAlive = curMon.hp! > 0;
 
-    /* ---- Did something happen? ----------------------------------- */
-    const monDamaged        = (curMon.hp ?? 0) < prevMonHp;
-    const charDamaged       = curChar.hp < prevCharHp;
-    const monEquipChanged   = JSON.stringify(curMon.equipment) !== prevMonEquip;
-    const charEquipChanged  = JSON.stringify(curChar.equipment) !== prevCharEquip;
-
-    if (!alive || monDamaged || charDamaged || monEquipChanged || charEquipChanged) {
-      // At least one side took damage / dropped equipment / monster died
-      break;
+    if (!monsterAlive) {
+      // The amount of damage you dealt during the fight is stored in
+      // `curMon.maxHp` – this matches the original (commented‑out) logic.
+      finalCharacter = applyXpAndLevelUp(curChar, curMon.maxHp);
     }
 
-    attempts++;   // nothing changed – retry a new round
-  }
-
-  /* ------------------------------------------------------------------
-     Final XP/level‑up (only if the monster is dead after all rounds)
-  ------------------------------------------------------------------ */
-  let finalCharacter = curChar;
-  const monsterAlive = curMon.hp! > 0;
-
-  if (!monsterAlive) {
-    // The amount of damage you dealt during the fight is stored in
-    // `curMon.maxHp` – this matches the original (commented‑out) logic.
-    finalCharacter = applyXpAndLevelUp(curChar, curMon.maxHp);
-  }
-
-  /* ------------------------------------------------------------------
-     Persist all changes: update character state and sync the grid
-  ------------------------------------------------------------------ */
-  setCharacter(finalCharacter);
-  setMonster(curMon);   // clears the encounter if hp <= 0
-};
+    /* ------------------------------------------------------------------
+      Persist all changes: update character state and sync the grid
+    ------------------------------------------------------------------ */
+    setCharacter(finalCharacter);
+    setMonster(curMon);   // clears the encounter if hp <= 0
+  };
 
 
 
@@ -390,13 +385,7 @@ const fight = (): void => {
     <div>
       <h2>{quest.dungeonName} (floor {ctx.level})</h2>
       <p>
-        A series of questionable decisions brought you here at: {quest.dungeonName}. It's a {quest.weather} weather {quest.location}.
-        Since you talked with that {quest.contact} about the {quest.occultTreasure} you feel possessed. 
-        You can't look back, all you can do is choose what you'll have in hands when you get to get to the bottom of it.
-        People once called you {character.name} and you were known for your {getHighestAttribute(character).join('/')}.
-        To get through what's on your path you use {character.equipment.weapon.damage == '1d2' ? 'your bare hands' : `a ${character.equipment.weapon.name}`} and
-        to protect yourself you have {character.equipment.armor.tier == 0 ? 'barely any clothes' : `a ${character.equipment.armor.name} armor`}.
-
+        {generateDungeonDescription(quest, character)}
       </p>
       <div className="dungeon">
         {grid.map((row, i) =>
@@ -448,6 +437,7 @@ const fight = (): void => {
           onClick={() => {
             ctx.setLevel?.(1);
             resetMap();
+            ctx.setQuest?.(generateRandomQuest());
             setCharacter(initRandomCharacter());
             setIsDead(false);
             clearLog();
@@ -458,7 +448,6 @@ const fight = (): void => {
         </button>
       )}
 
-      <GameLog entries={logEntries} />
     </div>
   );
 };
